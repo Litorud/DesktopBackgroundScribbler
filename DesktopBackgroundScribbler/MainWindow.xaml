@@ -5,8 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DesktopBackgroundScribbler"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="Desktop Background Scribbler" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" FocusManager.FocusedElement="{Binding ElementName=text}">
+    <Window.DataContext>
+        <local:MainWindowModel/>
+    </Window.DataContext>
+    <DockPanel Margin="2">
+        <TextBox Name="text" MinWidth="300" Text="{Binding Text, Mode=OneWayToSource}"/>
+        <Button Content="描画" DockPanel.Dock="Right" IsDefault="True"
+                Command="{Binding ScribbleCommand, UpdateSourceTrigger=Explicit}" CommandParameter="{Binding Text}" Click="Button_Click"/>
+    </DockPanel>
 </Window>
