@@ -9,8 +9,17 @@
     <Window.DataContext>
         <local:MainWindowModel/>
     </Window.DataContext>
+    <Window.InputBindings>
+        <KeyBinding Command="{Binding UndoCommand}" Gesture="Ctrl+Shift+Z"/>
+        <KeyBinding Command="{Binding RedoCommand}" Gesture="Ctrl+Shift+Y"/>
+    </Window.InputBindings>
     <DockPanel Margin="2">
-        <TextBox Name="text" MinWidth="300" Text="{Binding Text, Mode=OneWayToSource}"/>
+        <TextBox Name="text" MinWidth="300" Text="{Binding Text, Mode=TwoWay}">
+            <TextBox.InputBindings>
+                <KeyBinding Command="{Binding ForwardHistoryCommand}" Key="Up"/>
+                <KeyBinding Command="{Binding BackHistoryCommand}" Key="Down"/>
+            </TextBox.InputBindings>
+        </TextBox>
         <Button Content="描画" DockPanel.Dock="Right" IsDefault="True"
                 Command="{Binding ScribbleCommand, UpdateSourceTrigger=Explicit}" CommandParameter="{Binding Text}" Click="Button_Click"/>
     </DockPanel>

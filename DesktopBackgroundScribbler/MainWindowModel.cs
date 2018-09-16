@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Prism.Commands;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,38 +27,51 @@ namespace DesktopBackgroundScribbler
 
         public ICommand ScribbleCommand { get; }
 
+        public ICommand UndoCommand { get; }
+        public ICommand RedoCommand { get; }
+
+        public ICommand ForwardHistoryCommand { get; }
+        public ICommand BackHistoryCommand { get; }
+
         public MainWindowModel()
         {
-            ScribbleCommand = new ScribbleCommandImpl(mainModel);
+            ScribbleCommand = new DelegateCommand(Scribble);
+            UndoCommand = new DelegateCommand(Undo);
+            RedoCommand = new DelegateCommand(Redo);
+            ForwardHistoryCommand = new DelegateCommand(ForwardHistory);
+            BackHistoryCommand = new DelegateCommand(BackHistory);
         }
 
-        class ScribbleCommandImpl : ICommand
+        private void Scribble()
         {
-            private MainModel mainModel;
-
-            public event EventHandler CanExecuteChanged;
-
-            public ScribbleCommandImpl(MainModel mainModel)
+            if (string.IsNullOrWhiteSpace(Text))
             {
-                this.mainModel = mainModel;
+                Application.Current.Shutdown();
+                return;
             }
 
-            public bool CanExecute(object parameter)
-            {
-                return true;
-            }
+            mainModel.Scribble(Text);
+            Text = string.Empty;
+        }
 
-            public void Execute(object parameter)
-            {
-                if (parameter is string text && !string.IsNullOrWhiteSpace(text))
-                {
-                    mainModel.Scribble(text);
-                }
-                else
-                {
-                    Application.Current.Shutdown();
-                }
-            }
+        private void Undo()
+        {
+            mainModel.Undo();
+        }
+
+        private void Redo()
+        {
+            mainModel.Redo();
+        }
+
+        private void ForwardHistory()
+        {
+            Text = mainModel.GetHistory(1);
+        }
+
+        private void BackHistory()
+        {
+            Text = mainModel.GetHistory(-1);
         }
     }
 }
