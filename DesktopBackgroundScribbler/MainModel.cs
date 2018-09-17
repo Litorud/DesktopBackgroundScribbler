@@ -455,6 +455,23 @@ namespace DesktopBackgroundScribbler
                 i--;
         }
 
+        internal void Scribble2(string text)
+        {
+            var image = new DesktopBackgroundImage();
+            var fontFamily = FontFamilyPicker.Pick(text, random);
+
+            // 以下、方針の覚え書き
+            var path = new GraphicsPath(FillMode.Winding);
+            var format = new StringFormat(StringFormat.GenericDefault);
+            format.Alignment = StringAlignment.Center;
+            format.LineAlignment = StringAlignment.Center;
+            path.AddString(text, fontFamily, (int)FontStyle.Regular, 10, Point.Empty, format);
+            var bounds = path.GetBounds();
+            var 画面的に最大の幅 = image.Bitmap.Width / 2f;
+            var 画面的に最大の高さ = image.Bitmap.Height / 2f;
+            // ここから先は頭が働かないのでまた今度。
+        }
+
         internal void Scribble(string text)
         {
             // 現背景を履歴に保存。
