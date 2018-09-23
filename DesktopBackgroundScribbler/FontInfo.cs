@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace DesktopBackgroundScribbler
 {
-    internal class FontFamilyPicker
+    internal class FontInfo
     {
         // ちなみに、2018年現在の環境では、
         // GenericSerif    : Times New Roman
@@ -17,7 +17,18 @@ namespace DesktopBackgroundScribbler
         static FontFamily[] japaneseFontFamilies;
         static FontFamily[] allFontFamilies;
 
-        static FontFamilyPicker()
+        static FontStyle[] fontStyles = new[]
+        {
+            FontStyle.Regular,
+            FontStyle.Bold,
+            FontStyle.Italic,
+            FontStyle.Bold | FontStyle.Italic
+        };
+
+        public FontFamily Family { get; }
+        public FontStyle Style { get; }
+
+        static FontInfo()
         {
             var japaneseFontFamilies = GetFontFamilies(
                 "メイリオ",
@@ -42,7 +53,13 @@ namespace DesktopBackgroundScribbler
             {
                 japaneseFontFamilies.AddRange(genericFontFamilies);
             }
-            FontFamilyPicker.japaneseFontFamilies = japaneseFontFamilies.ToArray();
+            FontInfo.japaneseFontFamilies = japaneseFontFamilies.ToArray();
+        }
+
+        FontInfo(FontFamily family, FontStyle style)
+        {
+            Family = family;
+            Style = style;
         }
 
         private static List<FontFamily> GetFontFamilies(params string[] names)
@@ -61,13 +78,16 @@ namespace DesktopBackgroundScribbler
             return fontFamilies;
         }
 
-        internal static FontFamily Pick(string text, Random random)
+        internal static FontInfo GenerateRandomFontInfo(string text, Random random)
         {
             var fontFamilies = text.All(c => c < 256)
                 ? allFontFamilies
                 : japaneseFontFamilies;
 
-            return fontFamilies[random.Next(fontFamilies.Length)];
+            var family = fontFamilies[random.Next(fontFamilies.Length)];
+            var style = fontStyles[random.Next(fontStyles.Length)];
+
+            return new FontInfo(family, style);
         }
     }
 }

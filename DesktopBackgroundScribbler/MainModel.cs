@@ -13,14 +13,14 @@ using System.Windows.Forms;
 
 namespace DesktopBackgroundScribbler
 {
-    class MainModel
+    public class MainModel
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
         // たとえばFile.Exists()やFile.Move()など、メソッドの内部で絶対パスを取得する処理をしているので、問題無いなら最初から絶対パスを渡したほうがよいと判断。
         // ちなみに、プログラムの実行中にファイルの移動はおそらくできないはずなので、絶対パスを保持するようにしても問題無いはず。
-        readonly string FILE_PATH = Path.GetFullPath("Background.bmp");
+        readonly string filePath = Path.GetFullPath("Background.bmp");
 
         readonly int WIDTH;
         readonly int HEIGHT;
@@ -138,7 +138,7 @@ namespace DesktopBackgroundScribbler
                     // 背景色で初期化したGraphicsを作る。
                     InitializeGraphicsByBackgroundColor();
                 }
-                else if (wallpaper == FILE_PATH)
+                else if (wallpaper == filePath)
                 {
                     // レジストリにデスクトップの背景のパスが指定されており、それがこのプログラムによるものである場合。
                     InitializeGraphicsBySelfImage();
@@ -162,7 +162,7 @@ namespace DesktopBackgroundScribbler
                     else
                     {
                         string wallpaperSource = keyValue as string;
-                        if (wallpaperSource == FILE_PATH)
+                        if (wallpaperSource == filePath)
                         {
                             // 現在のデスクトップの背景の元になった画像がこのプログラムによるものである場合。
                             // FILE_PATHを使って再現。
@@ -282,9 +282,9 @@ namespace DesktopBackgroundScribbler
         /// </summary>
         private void InitializeGraphicsBySelfImage()
         {
-            if (File.Exists(FILE_PATH))
+            if (File.Exists(filePath))
             {
-                Bitmap source = new Bitmap(FILE_PATH);
+                Bitmap source = new Bitmap(filePath);
                 bitmap = new Bitmap(source);
                 source.Dispose();
                 graphics = Graphics.FromImage(bitmap);
@@ -455,34 +455,164 @@ namespace DesktopBackgroundScribbler
                 i--;
         }
 
-        internal void Scribble2(string text)
+        public void Scribble2(string text)
         {
-            var image = new DesktopBackgroundImage();
-            var fontFamily = FontFamilyPicker.Pick(text, random);
+            // フォントファミリーとフォントスタイルをランダムに決定する。
+            var fontInfo = FontInfo.GenerateRandomFontInfo(text, random);
 
-            // 以下、方針の覚え書き
-            var path = new GraphicsPath(FillMode.Winding);
-            var format = new StringFormat(StringFormat.GenericDefault);
-            format.Alignment = StringAlignment.Center;
-            format.LineAlignment = StringAlignment.Center;
-            path.AddString(text, fontFamily, (int)FontStyle.Regular, 10, Point.Empty, format);
-            var bounds = path.GetBounds();
-            var 画面的に最大の幅 = image.Bitmap.Width / 2f;
-            var 画面的に最大の高さ = image.Bitmap.Height / 2f;
-            // ここから先は頭が働かないのでまた今度。
+            // デスクトップの背景となる画像のサイズを決定する。
+            var imageBounds = Screen.PrimaryScreen.Bounds;
+
+            // 画像のサイズから、最小フォントサイズを短辺の1/100と決定する。
+            var minFontSize = Math.Min(imageBounds.Width, imageBounds.Height) / 100F;
+
+            // フォントファミリー、フォントスタイル、最小フォントサイズから、テキストパスサイズを求める。
+            var textPath = new TextPath(text, fontInfo, minFontSize);
+
+            var pathBounds = textPath.Path.GetBounds();
+
+            // 最小フォントサイズ、テキストパスサイズ、画像サイズから、拡大率を決定する。
+            var scaleRatio = GenerateRandomScaleRatio(
+                minFontSize,
+                pathBounds.Width, pathBounds.Height,
+                imageBounds.Width, imageBounds.Height,
+                random);
+
+            // 傾きを決定する。
+            var angle = random.NextDouble() * 180 - 90;
+
+            // 最小フォントサイズ、拡大率、テキストパスサイズ、画像サイズ、傾きから、位置を決定する。
+            var point = GenerateRandomPoint(
+                minFontSize,
+                scaleRatio,
+                pathBounds.Width, pathBounds.Height,
+                imageBounds.Width, imageBounds.Height,
+                angle,
+                random);
+
+            // 拡大率、傾き、位置に基づいて GraphicsPath を変換する。
+            textPath.Transform(scaleRatio, angle, point);
+
+            // 色を決定する。色に基づいて Brush を作成する。
+            var color = GenerateRandomColor(random);
+            var brush = new SolidBrush(color);
+
+            // 色から、縁取りの色を求める。
+            var strokeColor = color.GetBrightness() > 0.95F ? Color.Black : Color.White;
+
+            // 拡大率から、縁取りの幅を決定する。
+            var strokeWidth = GenerateRandomStrokeWidth(scaleRatio, random);
+
+            // 縁取りの色、縁取りの幅に基づいて Pen を作成する。
+            var pen = new Pen(strokeColor, (float)strokeWidth);
+
+            // 描画
+            using (var image = new DesktopBackgroundImage(imageBounds.Width, imageBounds.Height))
+            {
+                image.Draw(textPath.Path, brush, pen);
+                image.Save(filePath);
+            }
+
+            // デスクトップの背景に設定
+            SystemParametersInfo(20, 0, filePath, 1);
+        }
+
+        private double GenerateRandomScaleRatio(float minFontSize, float pathWidth, float pathHeight, int imageWidth, int imageHeight, Random random)
+        {
+            // 現文字列幅 × 最大拡大率 = 画像幅 + フォントサイズ
+            // ここで、フォントサイズも拡大率に伴って変わるので、
+            // 現文字列幅 × 最大拡大率 = 画像幅 + minFontPx × 最大拡大率
+            // 最大拡大率 = 画像幅 ÷ (現文字列幅 - minFontPx)
+            float 最大拡大率;
+            if (pathWidth <= minFontSize)
+            {
+                if (pathHeight <= minFontSize)
+                {
+                    最大拡大率 = 1;
+                }
+                else
+                {
+                    最大拡大率 = imageHeight / (pathHeight - minFontSize);
+                }
+            }
+            else
+            {
+                if (pathHeight <= minFontSize)
+                {
+                    最大拡大率 = imageWidth / (pathWidth - minFontSize);
+                }
+                else
+                {
+                    var 幅最大拡大率 = imageWidth / (pathWidth - minFontSize);
+                    var 高さ最大拡大率 = imageHeight / (pathHeight - minFontSize);
+                    最大拡大率 = Math.Min(幅最大拡大率, 高さ最大拡大率);
+                }
+            }
+
+            // 1～拡大可能率の範囲でランダムで拡大率を決定する。
+            return (最大拡大率 - 1) * random.NextDouble() + 1;
+        }
+
+        private PointF GenerateRandomPoint(float minFontSize, double scaleRatio, float pathWidth, float pathHeight, int imageWidth, int imageHeight, double angle, Random random)
+        {
+            // 位置を決定する。開始位置及び終了位置は、フォントサイズの半分までなら見切れてよい。
+            var fontSize = minFontSize * scaleRatio;
+            var halfFontSize = fontSize / 2;
+
+            var 幅 = pathWidth * scaleRatio;
+            var baseX = (imageWidth + fontSize - 幅) * random.NextDouble();
+            var x = baseX - halfFontSize + 幅 / 2;
+
+            var 高さ = pathHeight * scaleRatio;
+            var radian = Math.Abs(angle) * Math.PI / 180;
+            var 傾き高さ = Math.Sin(radian) * 幅;
+            var baseY = (imageHeight + fontSize - Math.Max(高さ, 傾き高さ)) * random.NextDouble();
+            var y = baseY - halfFontSize + 高さ / 2;
+
+            return new PointF((float)x, (float)y);
+        }
+
+        private double GenerateRandomStrokeWidth(double scaleRatio, Random random)
+        {
+            // scaleRatio が1（=フォントサイズが10）のとき、1～3の範囲でランダムに幅を決めたい。
+            // scaleRatio が100（フォントサイズが100）のとき、10～50の範囲でランダムに幅を決めたい。
+            //var 振れ幅 = 38 * scaleRatio / 99 + 160 / 99;
+            //var オフセット = scaleRatio / 11 + 10 / 11;
+            // 上の計算式が最も正確なのだが、第2項で毎回割り算が発生するコストが見合わないので、
+            // 近似値のリテラルで置き換える。
+            var 振れ幅 = 38 * scaleRatio / 99 + 1.6;
+            var オフセット = scaleRatio / 11 + 1;
+
+            return 振れ幅 * random.NextDouble() + オフセット;
+
+            // 別の求め方
+            // var 最小幅 = scaleRatio / 11 + 10 / 11; // オフセットと同じ計算式
+            // var 最大幅 = 47 * scaleRatio / 99 + 250 / 99;
+
+            //return (最大幅 - 最小幅) * random.NextDouble() + 最小幅;
+        }
+
+        private Color GenerateRandomColor(Random random)
+        {
+            var r = random.Next(256);
+            var g = random.Next(256);
+            var b = random.Next(256);
+            return Color.FromArgb(r, g, b);
         }
 
         internal void Scribble(string text)
         {
+            Scribble2(text);
+            return;
             // 現背景を履歴に保存。
             if (Directory.Exists(HISTORY_DIRECTORY))
             {
                 if (undoCount == 0)
                 {
-                    if (File.Exists(FILE_PATH))
+                    if (File.Exists(filePath))
                     {
                         File.Delete(imageHistory[imageLeadIndex]);
-                        File.Move(FILE_PATH, imageHistory[imageLeadIndex]);
+                        File.Move(filePath, imageHistory[imageLeadIndex]);
                         if (imageCount < IMAGE_HISTORY_SIZE)
                             imageCount++;
 
@@ -536,9 +666,9 @@ namespace DesktopBackgroundScribbler
 
                 if (undoCount == 0)
                 {
-                    if (File.Exists(FILE_PATH))
+                    if (File.Exists(filePath))
                     {
-                        File.Move(FILE_PATH, imageHistory[0]);
+                        File.Move(filePath, imageHistory[0]);
                         imageLeadIndex = imageFocusIndex = imageCount = 1;
                     }
                     else
@@ -618,12 +748,12 @@ namespace DesktopBackgroundScribbler
             graphics.DrawPath(pen, gp);
             graphics.FillPath(new SolidBrush(color), gp);
 
-            bitmap.Save(FILE_PATH, ImageFormat.Bmp);
+            bitmap.Save(filePath, ImageFormat.Bmp);
 
             // 背景変更。
             // 第4引数の1は設定を更新するということ。なお、もし問題があったら第4引数を1 | 2にするとよいかもしれない。
             // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
-            SystemParametersInfo(20, 0, FILE_PATH, 1);
+            SystemParametersInfo(20, 0, filePath, 1);
 
             // 文字列の履歴更新処理
             UpdateStringHistory(text);
@@ -651,8 +781,8 @@ namespace DesktopBackgroundScribbler
 
                 IncrementImageIndex(ref imageFocusIndex);
 
-                if (File.Exists(FILE_PATH))
-                    SystemParametersInfo(20, 0, FILE_PATH, 1);
+                if (File.Exists(filePath))
+                    SystemParametersInfo(20, 0, filePath, 1);
             }
             else if (undoCount > 1)
             {
@@ -699,12 +829,12 @@ namespace DesktopBackgroundScribbler
 
             if (undoCount > 0)
             {
-                File.Delete(FILE_PATH);
+                File.Delete(filePath);
                 if (File.Exists(imageHistory[imageFocusIndex]))
                 {
-                    File.Copy(imageHistory[imageFocusIndex], FILE_PATH);
+                    File.Copy(imageHistory[imageFocusIndex], filePath);
                     using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
-                        key.SetValue("Wallpaper", FILE_PATH);
+                        key.SetValue("Wallpaper", filePath);
                 }
 
                 do
