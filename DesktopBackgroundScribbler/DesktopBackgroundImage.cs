@@ -23,6 +23,11 @@ namespace DesktopBackgroundScribbler
             graphics = Graphics.FromImage(bitmap);
             graphics.SmoothingMode = SmoothingMode.HighQuality;
 
+            InitializeBitmap();
+        }
+
+        private void InitializeBitmap()
+        {
             // 背景色で初期化する。
             // デスクトップの背景の画像が「ページ幅に合わせる」などの場合、背景色で初期化する必要は今のところ無いが、
             // 透過を含む画像が将来的に対応される可能性を考慮した。
@@ -37,8 +42,15 @@ namespace DesktopBackgroundScribbler
                     return;
                 }
 
+                // Wallpaper に不正な画像ファイルが登録されていた場合に備えて try 節で囲む。
+                // その場合は単に return する。
                 try
                 {
+                    // Wallpaper のパスは元画像ではなく、トランスコードされた画像の可能性がある。
+                    // スライドショー設定にしている場合など。
+                    // 厳密には、HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Desktop\General などを調べることで、
+                    // 元画像からデスクトップの背景を再現できる。
+                    // 参考 : http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1064110280
                     using (var wallpaperBitmap = new Bitmap(wallpaper))
                     {
                         // (TileWallpaper, WallpaperStyle)
@@ -49,37 +61,44 @@ namespace DesktopBackgroundScribbler
                         // 中央に表示　　　　　　: (0,  0)
                         // スパン　　　　　　　　: (0, 22)
                         // 参考: https://smdn.jp/programming/tips/setdeskwallpaper/
+                        if (wallpaperBitmap.Width == bitmap.Width && wallpaperBitmap.Height == bitmap.Height)
+                        {
+                            // 現在のデスクトップの背景画像のサイズが、作成する画像サイズと同じならば、
+                            // レジストリの読み取りなどを省略できる。
+                            // 連続で Scribble する場合はこのブロックを通ることが多いはず。
+                            // なお、wallpaperBitmap をそのまま Bitmap プロパティに設定してはいけない。
+                            // wallpaperBitmap はファイルから作成した Bitmap なので、Dispose() しなければならない。
+                            PutImage(wallpaperBitmap);
+                            return;
+                        }
+
                         if (int.TryParse(Convert.ToString(key.GetValue("TileWallpaper")), out int tile) && tile == 1)
                         {
                             TileImage(wallpaperBitmap);
+                            return;
                         }
-                        else
-                        {
-                            if (!int.TryParse(Convert.ToString(key.GetValue("WallpaperStyle")), out int style))
-                                style = 10;
 
-                            switch (style)
-                            {
-                                case 0: // 中央に表示
-                                    CenterImage(wallpaperBitmap);
-                                    break;
-                                case 2: // 画面に合わせて伸縮
-                                    StretchImage(wallpaperBitmap);
-                                    break;
-                                case 6: // ページ縦幅に合わせる
-                                    FitImage(wallpaperBitmap);
-                                    break;
-                                default: // ページ横幅に合わせる
-                                    FillImage(wallpaperBitmap);
-                                    break;
-                            }
+                        if (!int.TryParse(Convert.ToString(key.GetValue("WallpaperStyle")), out int style))
+                            style = 10;
+
+                        switch (style)
+                        {
+                            case 0: // 中央に表示
+                                CenterImage(wallpaperBitmap);
+                                break;
+                            case 2: // 画面に合わせて伸縮
+                                StretchImage(wallpaperBitmap);
+                                break;
+                            case 6: // ページ縦幅に合わせる
+                                FitImage(wallpaperBitmap);
+                                break;
+                            default: // ページ横幅に合わせる
+                                FillImage(wallpaperBitmap);
+                                break;
                         }
                     }
                 }
-                catch
-                {
-                    return;
-                }
+                catch { }
             }
         }
 
@@ -103,6 +122,11 @@ namespace DesktopBackgroundScribbler
             {
                 yield return 0;
             }
+        }
+
+        private void PutImage(Image image)
+        {
+            graphics.DrawImage(image, 0, 0, image.Width, image.Height);
         }
 
         private void TileImage(Image image)

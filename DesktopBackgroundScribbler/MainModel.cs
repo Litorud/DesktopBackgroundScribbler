@@ -18,17 +18,12 @@ namespace DesktopBackgroundScribbler
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
+        // デスクトップの背景に設定する画像はカレントディレクトリに保存する方針だが、
+        // レジストリの登録は絶対パスでなければならないので、この時点で絶対パスに変換しておく。
         // たとえばFile.Exists()やFile.Move()など、メソッドの内部で絶対パスを取得する処理をしているので、問題無いなら最初から絶対パスを渡したほうがよいと判断。
         // ちなみに、プログラムの実行中にファイルの移動はおそらくできないはずなので、絶対パスを保持するようにしても問題無いはず。
         readonly string filePath = Path.GetFullPath("Background.bmp");
 
-        readonly int WIDTH;
-        readonly int HEIGHT;
-
-        readonly FontFamily[] generalFontFamilies = new FontFamily[2];
-        readonly FontFamily[] asciiFontFamilies = new FontFamily[4];
-        const int BOLD = (int)System.Drawing.FontStyle.Bold;
-        const int BOLDITALIC = BOLD | (int)System.Drawing.FontStyle.Italic;
 
         Random random = new Random();
 
@@ -65,65 +60,6 @@ namespace DesktopBackgroundScribbler
 
         public MainModel()
         {
-            Rectangle rectangle = Screen.PrimaryScreen.Bounds;
-            WIDTH = rectangle.Width;
-            HEIGHT = rectangle.Height;
-
-            //
-            // フォントの準備
-            //
-
-            try
-            {
-                generalFontFamilies[0] = new FontFamily("ＭＳ Ｐ明朝");
-            }
-            catch (ArgumentException)
-            {
-                generalFontFamilies[0] = System.Drawing.FontFamily.GenericSerif;
-            }
-            try
-            {
-                generalFontFamilies[1] = new FontFamily("メイリオ");
-            }
-            catch (ArgumentException)
-            {
-                generalFontFamilies[1] = System.Drawing.FontFamily.GenericSansSerif;
-            }
-
-            // Segoe Scriptも使いたかったが、パスの重なった部分の塗りつぶし方が思うようにならなかったので諦め。
-            try
-            {
-                asciiFontFamilies[0] = new FontFamily("Comic Sans MS");
-            }
-            catch (ArgumentException)
-            {
-                asciiFontFamilies[0] = System.Drawing.FontFamily.GenericSansSerif;
-            }
-            try
-            {
-                asciiFontFamilies[1] = new FontFamily("Georgia");
-            }
-            catch (ArgumentException)
-            {
-                asciiFontFamilies[1] = System.Drawing.FontFamily.GenericSerif;
-            }
-            try
-            {
-                asciiFontFamilies[2] = new FontFamily("Impact");
-            }
-            catch (ArgumentException)
-            {
-                asciiFontFamilies[2] = System.Drawing.FontFamily.GenericSansSerif;
-            }
-            try
-            {
-                asciiFontFamilies[3] = new FontFamily("Times New Roman");
-            }
-            catch (ArgumentException)
-            {
-                asciiFontFamilies[3] = System.Drawing.FontFamily.GenericSansSerif;
-            }
-
             //
             // BitmapとGraphicsの準備
             //
@@ -136,7 +72,7 @@ namespace DesktopBackgroundScribbler
                 {
                     // レジストリにデスクトップの背景のパスが指定されていなかった場合。
                     // 背景色で初期化したGraphicsを作る。
-                    InitializeGraphicsByBackgroundColor();
+                    //InitializeGraphicsByBackgroundColor();
                 }
                 else if (wallpaper == filePath)
                 {
@@ -156,8 +92,8 @@ namespace DesktopBackgroundScribbler
                         // wallpaperを使って再現。
                         if (File.Exists(wallpaper))
                             InitializeGraphicsByOtherImage(wallpaper, key);
-                        else
-                            InitializeGraphicsByBackgroundColor();
+                        //else
+                        //InitializeGraphicsByBackgroundColor();
                     }
                     else
                     {
@@ -177,14 +113,12 @@ namespace DesktopBackgroundScribbler
                                 InitializeGraphicsByOtherImage(wallpaperSource, key);
                             else if (File.Exists(wallpaper))
                                 InitializeGraphicsByOtherImage(wallpaper, key);
-                            else
-                                InitializeGraphicsByBackgroundColor();
+                            //else
+                            //    InitializeGraphicsByBackgroundColor();
                         }
                     }
                 }
             }
-
-            graphics.SmoothingMode = SmoothingMode.HighQuality;
 
             //
             // 履歴関係
@@ -242,41 +176,6 @@ namespace DesktopBackgroundScribbler
         }
 
         /// <summary>
-        /// フィールドbitmapとフィールドgraphicsを初期化します。
-        /// WIDTH×HEIGHTの大きさで、レジストリ設定の背景色でClearします。
-        /// </summary>
-        private void InitializeGraphicsByBackgroundColor()
-        {
-            bitmap = new Bitmap(WIDTH, HEIGHT);
-            graphics = Graphics.FromImage(bitmap);
-
-            object keyValue;
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Colors"))
-                keyValue = key.GetValue("Background");
-
-            if (keyValue == null)
-            {
-                graphics.Clear(Color.White);
-            }
-            else
-            {
-                string[] rgbStr = (keyValue as string).Split(' ');
-                int[] rgb = new int[3];
-                int minLength = Math.Min(rgbStr.Length, rgb.Length);
-                int i = 0;
-                for (; i < minLength; i++)
-                {
-                    if (!int.TryParse(rgbStr[i], out rgb[i]))
-                        rgb[i] = 0;
-                }
-                for (; i < rgb.Length; i++)
-                    rgb[i] = 0;
-
-                graphics.Clear(Color.FromArgb(rgb[0], rgb[1], rgb[2]));
-            }
-        }
-
-        /// <summary>
         /// Background.bmpで、フィールドbitmapとフィールドgraphicsを初期化します。
         /// Background.bmpが存在しない場合、InitializeGraphicsByBackgroundColor()を呼び出します。
         /// </summary>
@@ -291,7 +190,7 @@ namespace DesktopBackgroundScribbler
             }
             else
             {
-                InitializeGraphicsByBackgroundColor();
+                //InitializeGraphicsByBackgroundColor();
             }
         }
 
@@ -312,91 +211,6 @@ namespace DesktopBackgroundScribbler
             // 前の画像があるフラグが1以上なら、前の画像を背景に設定し、前の画像を背景に設定したフラグを立てる。
             // やり直しの際は、前の画像を背景に設定したフラグを調べ、立っていたら折り、一番古い画像を背景に設定する。
             // 前の画像に戻った状態で描き込んだら、前の画像を背景に設定したフラグを折り、前の画像があるフラグを4にする。
-
-            // 背景色で初期化したGraphicsを作る。
-            // デスクトップの背景を再現する場合は、並べて表示、画面に合わせて伸縮、ページ横幅に合わせるについては、
-            // Graphicsを背景色でClearする必要は今のところ無いが、将来的には透過を含む画像がデスクトップの背景に指定できるかも知れず、
-            // そのときには背景色でClearしておく必要があるし、またプログラムも単純になるので、
-            // 常にここで背景色でClearすることにする。
-            InitializeGraphicsByBackgroundColor();
-
-            // http://smdn.jp/programming/tips/setdeskwallpaper/ を参考に。
-            Bitmap original = new Bitmap(path);
-            int w = original.Width;
-            int h = original.Height;
-
-            int style, tile;
-            object keyValue = key.GetValue("WallpaperStyle");
-            if (keyValue == null || !int.TryParse(keyValue as string, out style))
-                style = 10;
-            keyValue = key.GetValue("TileWallpaper");
-            if (keyValue == null || !int.TryParse(keyValue as string, out tile))
-                tile = 0;
-
-            if (style == 0 && tile == 0) // 中央に表示
-            {
-                graphics.DrawImage(original, (WIDTH - w) / 2, (HEIGHT - h) / 2, w, h);
-            }
-            else if (style == 0 && tile == 1) // 並べて表示
-            {
-                for (int y = 0; y < HEIGHT; y += h)
-                {
-                    for (int x = 0; x < WIDTH; x += w)
-                        graphics.DrawImage(original, x, y, w, h);
-                }
-            }
-            else if (style == 2 && tile == 0) // 画面に合わせて伸縮
-            {
-                // 少々強引だが、幅と高さをこのように調整すれば過不足無くずれを吸収できる。
-                graphics.DrawImage(original, 0, 0, WIDTH + WIDTH / (float)w - 1, HEIGHT + HEIGHT / (float)h - 1);
-            }
-            else if (style == 6 && tile == 0) // ページ縦幅に合わせる
-            {
-                double x比率 = WIDTH / (double)w;
-                double y比率 = HEIGHT / (double)h;
-                if (x比率 < y比率) // 横長の画像向け。
-                {
-                    double bgh = original.Height * x比率;
-                    double 調整値 = x比率 - 1;
-                    graphics.DrawImage(original, 0, (int)((HEIGHT - bgh) / 2), (float)(WIDTH + 調整値), (float)(bgh + 調整値));
-                }
-                else if (x比率 > y比率) // 縦長の画像向け。
-                {
-                    double bgw = original.Width * y比率;
-                    double 調整値 = y比率 - 1;
-                    graphics.DrawImage(original, (int)((WIDTH - bgw) / 2), 0, (float)(bgw + 調整値), (float)(HEIGHT + 調整値));
-                }
-                else
-                {
-                    graphics.DrawImage(original, 0, 0, (float)(WIDTH + x比率 - 1), (float)(HEIGHT + y比率 - 1));
-                }
-            }
-            else // ページ横幅に合わせる
-            {
-                double x比率 = WIDTH / (double)w;
-                double y比率 = HEIGHT / (double)h;
-                if (x比率 > y比率) // 縦長の画像向け
-                {
-                    double bgh = original.Height * x比率;
-                    double 調整値 = x比率 - 1;
-                    // 次にコメントアウトしている文では、1920×1199の画像の際にずれる。
-                    //graphics.DrawImage(original, 0, (int)((HEIGHT - bgh) / 2 - 0.5), (float)(WIDTH + 調整値), (float)(bgh + 調整値));
-                    graphics.DrawImage(original, 0, (int)((HEIGHT - (bgh + 調整値)) / 2), (float)(WIDTH + 調整値), (float)(bgh + 調整値)); // ずれを無くす実験中の文。
-                }
-                else if (x比率 < y比率) // 横長の画像向け
-                {
-                    double bgw = original.Width * y比率;
-                    double 調整値 = y比率 - 1;
-                    //graphics.DrawImage(original, (int)((WIDTH - bgw) / 2 - 0.5), 0, (float)(bgw + 調整値), (float)(HEIGHT + 調整値));
-                    graphics.DrawImage(original, (int)((WIDTH - bgw) / 2), 0, (float)(bgw + 調整値), (float)(HEIGHT + 調整値)); // ずれを無くす実験中の文。
-                }
-                else
-                {
-                    graphics.DrawImage(original, 0, 0, (float)(WIDTH + x比率 - 1), (float)(HEIGHT + y比率 - 1));
-                }
-            }
-
-            original.Dispose();
         }
 
         //
@@ -516,6 +330,8 @@ namespace DesktopBackgroundScribbler
             }
 
             // デスクトップの背景に設定
+            // 第4引数の1は設定を更新するということ。なお、もし問題があったら第4引数を1 | 2にするとよいかもしれない。
+            // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
             SystemParametersInfo(20, 0, filePath, 1);
         }
 
@@ -683,78 +499,6 @@ namespace DesktopBackgroundScribbler
                     undoCount = 0;
                 }
             }
-
-            //
-            // 座標以外のパラメーターを決定する。
-            //
-
-            // フォントファミリーを決定。
-            FontFamily[] families = asciiFontFamilies;
-            foreach (char c in text.ToCharArray())
-            {
-                if (c > 255)
-                {
-                    families = generalFontFamilies;
-                    break;
-                }
-            }
-            FontFamily fontFamily = families[random.Next(families.Length)];
-
-            // フォントスタイルを決定。
-            int fontStyle = random.Next(5) == 0 ? BOLDITALIC : BOLD;
-
-            // 文字サイズを決定。単位はピクセル。
-            double emSize = random.NextDouble() * 70 + 30;
-
-            // 傾きを決定。
-            double angle = random.NextDouble() * 20 - 10;
-
-            // 色を決定。
-            int r = random.Next(256);
-            int g = random.Next(256);
-            int b = random.Next(256);
-            Color color = Color.FromArgb(r, g, b);
-
-            // 縁取りのペンを決定。
-            Pen pen = new Pen(r >= 224 && g >= 224 && b >= 224 ? Color.Black : Color.White, (float)Math.Max(emSize / 20, 3));
-
-            //
-            // 描画
-            //
-
-            GraphicsPath gp = new GraphicsPath();
-            gp.AddString(text, fontFamily, fontStyle, (float)emSize, PointF.Empty, StringFormat.GenericDefault);
-
-            // 文字列の中心を原点にし、その後原点を中心に回転させる。
-            RectangleF bounds = gp.GetBounds();
-            Matrix matrix = new Matrix();
-            matrix.Rotate((float)angle);
-            // 描画したのは(0, 0)だが、GetBoundsで得たXやYは0ではない。
-            matrix.Translate(-bounds.X - bounds.Width / 2, -bounds.Y - bounds.Height / 2);
-            gp.Transform(matrix);
-
-            // 画像上において、文字列の中心となる座標を決定する。
-            // 文字列の横方向は、文字サイズまでなら見切れてもいいものとする。
-            // 文字列の縦方向は、文字サイズの半分までなら見切れてもいいものとする。
-            double w = gp.GetBounds().Width;
-            double x = (WIDTH + emSize * 2 - w) * random.NextDouble() - emSize + w / 2;
-            double y = HEIGHT * random.NextDouble();
-
-            // そこへ向かって平行移動する。
-            matrix = new Matrix();
-            matrix.Translate((float)x, (float)y);
-            gp.Transform(matrix);
-
-            // そして描画。
-            graphics.DrawPath(pen, gp);
-            graphics.FillPath(new SolidBrush(color), gp);
-
-            bitmap.Save(filePath, ImageFormat.Bmp);
-
-            // 背景変更。
-            // 第4引数の1は設定を更新するということ。なお、もし問題があったら第4引数を1 | 2にするとよいかもしれない。
-            // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
-            SystemParametersInfo(20, 0, filePath, 1);
 
             // 文字列の履歴更新処理
             UpdateStringHistory(text);

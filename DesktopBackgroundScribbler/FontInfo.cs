@@ -17,8 +17,13 @@ namespace DesktopBackgroundScribbler
         static FontFamily[] japaneseFontFamilies;
         static FontFamily[] allFontFamilies;
 
+        // 車体はあまりかっこよくないので4回に1回しか出ないようにする。
         static FontStyle[] fontStyles = new[]
         {
+            FontStyle.Regular,
+            FontStyle.Bold,
+            FontStyle.Regular,
+            FontStyle.Bold,
             FontStyle.Regular,
             FontStyle.Bold,
             FontStyle.Italic,
