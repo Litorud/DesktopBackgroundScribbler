@@ -24,7 +24,6 @@ namespace DesktopBackgroundScribbler
         // ちなみに、プログラムの実行中にファイルの移動はおそらくできないはずなので、絶対パスを保持するようにしても問題無いはず。
         readonly string filePath = Path.GetFullPath("Background.bmp");
 
-
         Random random = new Random();
 
         Bitmap bitmap;
@@ -60,66 +59,6 @@ namespace DesktopBackgroundScribbler
 
         public MainModel()
         {
-            //
-            // BitmapとGraphicsの準備
-            //
-
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
-            {
-                object keyValue = key.GetValue("Wallpaper");
-                string wallpaper;
-                if (keyValue == null || string.IsNullOrEmpty(wallpaper = keyValue as string))
-                {
-                    // レジストリにデスクトップの背景のパスが指定されていなかった場合。
-                    // 背景色で初期化したGraphicsを作る。
-                    //InitializeGraphicsByBackgroundColor();
-                }
-                else if (wallpaper == filePath)
-                {
-                    // レジストリにデスクトップの背景のパスが指定されており、それがこのプログラムによるものである場合。
-                    InitializeGraphicsBySelfImage();
-                }
-                else
-                {
-                    // 現在のデスクトップの背景がこのプログラムによるものではない場合。
-                    // HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Desktop\Generalを調べる。
-                    // ここがFILE_PATHだったら、FILE_PATHを使ってGraphicsを作る。
-                    // 参考 : http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1064110280
-                    using (RegistryKey key2 = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Internet Explorer\Desktop\General"))
-                        keyValue = key2.GetValue("WallpaperSource");
-                    if (keyValue == null)
-                    {
-                        // wallpaperを使って再現。
-                        if (File.Exists(wallpaper))
-                            InitializeGraphicsByOtherImage(wallpaper, key);
-                        //else
-                        //InitializeGraphicsByBackgroundColor();
-                    }
-                    else
-                    {
-                        string wallpaperSource = keyValue as string;
-                        if (wallpaperSource == filePath)
-                        {
-                            // 現在のデスクトップの背景の元になった画像がこのプログラムによるものである場合。
-                            // FILE_PATHを使って再現。
-                            InitializeGraphicsBySelfImage();
-                        }
-                        else
-                        {
-                            // 現在のデスクトップの背景がこのプログラムによるものではなく、
-                            // 現在のデスクトップの背景の元になった画像もこのプログラムによるものではない場合。
-                            // wallpaperSourceまたはwallpaperを使って再現。
-                            if (File.Exists(wallpaperSource))
-                                InitializeGraphicsByOtherImage(wallpaperSource, key);
-                            else if (File.Exists(wallpaper))
-                                InitializeGraphicsByOtherImage(wallpaper, key);
-                            //else
-                            //    InitializeGraphicsByBackgroundColor();
-                        }
-                    }
-                }
-            }
-
             //
             // 履歴関係
             //
@@ -173,25 +112,6 @@ namespace DesktopBackgroundScribbler
             // 画像の履歴関係
             for (int i = 0; i < IMAGE_HISTORY_SIZE; i++)
                 imageHistory[i] = Path.Combine(HISTORY_DIRECTORY, i + ".bmp");
-        }
-
-        /// <summary>
-        /// Background.bmpで、フィールドbitmapとフィールドgraphicsを初期化します。
-        /// Background.bmpが存在しない場合、InitializeGraphicsByBackgroundColor()を呼び出します。
-        /// </summary>
-        private void InitializeGraphicsBySelfImage()
-        {
-            if (File.Exists(filePath))
-            {
-                Bitmap source = new Bitmap(filePath);
-                bitmap = new Bitmap(source);
-                source.Dispose();
-                graphics = Graphics.FromImage(bitmap);
-            }
-            else
-            {
-                //InitializeGraphicsByBackgroundColor();
-            }
         }
 
         /// <summary>

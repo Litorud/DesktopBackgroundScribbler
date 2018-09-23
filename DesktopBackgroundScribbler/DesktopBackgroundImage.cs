@@ -19,21 +19,47 @@ namespace DesktopBackgroundScribbler
         public DesktopBackgroundImage(int width, int height)
         {
             bitmap = new Bitmap(width, height);
-
             graphics = Graphics.FromImage(bitmap);
+
             graphics.SmoothingMode = SmoothingMode.HighQuality;
 
-            InitializeBitmap();
+            Clear();
+            DrawWallpaper();
         }
 
-        private void InitializeBitmap()
+        private void Clear()
         {
             // 背景色で初期化する。
             // デスクトップの背景の画像が「ページ幅に合わせる」などの場合、背景色で初期化する必要は今のところ無いが、
             // 透過を含む画像が将来的に対応される可能性を考慮した。
             var rgb = GetBackgroundRgb().Take(3).ToArray();
             graphics.Clear(Color.FromArgb(rgb[0], rgb[1], rgb[2]));
+        }
 
+        private IEnumerable<int> GetBackgroundRgb()
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Colors"))
+            {
+                var backgroundParts = Convert.ToString(key.GetValue("Background"))
+                    .Split(default(char[]), StringSplitOptions.RemoveEmptyEntries);
+                foreach (var backgroundPart in backgroundParts)
+                {
+                    int i;
+                    if (int.TryParse(backgroundPart, out i))
+                    {
+                        yield return i < 0 ? 0 : i > 255 ? 255 : i;
+                    }
+                }
+            }
+
+            while (true)
+            {
+                yield return 0;
+            }
+        }
+
+        private void DrawWallpaper()
+        {
             using (var key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
             {
                 var wallpaper = Convert.ToString(key.GetValue("Wallpaper"));
@@ -99,28 +125,6 @@ namespace DesktopBackgroundScribbler
                     }
                 }
                 catch { }
-            }
-        }
-
-        private IEnumerable<int> GetBackgroundRgb()
-        {
-            using (var key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Colors"))
-            {
-                var backgroundParts = Convert.ToString(key.GetValue("Background"))
-                    .Split(default(char[]), StringSplitOptions.RemoveEmptyEntries);
-                foreach (var backgroundPart in backgroundParts)
-                {
-                    int i;
-                    if (int.TryParse(backgroundPart, out i))
-                    {
-                        yield return i < 0 ? 0 : i > 255 ? 255 : i;
-                    }
-                }
-            }
-
-            while (true)
-            {
-                yield return 0;
             }
         }
 
