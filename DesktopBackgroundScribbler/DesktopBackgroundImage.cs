@@ -49,15 +49,13 @@ namespace DesktopBackgroundScribbler
                         // 中央に表示　　　　　　: (0,  0)
                         // スパン　　　　　　　　: (0, 22)
                         // 参考: https://smdn.jp/programming/tips/setdeskwallpaper/
-                        int tile;
-                        if (int.TryParse(Convert.ToString(key.GetValue("TileWallpaper")), out tile) && tile == 1)
+                        if (int.TryParse(Convert.ToString(key.GetValue("TileWallpaper")), out int tile) && tile == 1)
                         {
                             TileImage(wallpaperBitmap);
                         }
                         else
                         {
-                            int style;
-                            if (!int.TryParse(Convert.ToString(key.GetValue("WallpaperStyle")), out style))
+                            if (!int.TryParse(Convert.ToString(key.GetValue("WallpaperStyle")), out int style))
                                 style = 10;
 
                             switch (style)

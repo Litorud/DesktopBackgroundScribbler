@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace DesktopBackgroundScribbler
 {
-    internal class FontInfo
+    public class FontInfo
     {
         // ちなみに、2018年現在の環境では、
         // GenericSerif    : Times New Roman
@@ -56,7 +56,7 @@ namespace DesktopBackgroundScribbler
             FontInfo.japaneseFontFamilies = japaneseFontFamilies.ToArray();
         }
 
-        FontInfo(FontFamily family, FontStyle style)
+        public FontInfo(FontFamily family, FontStyle style)
         {
             Family = family;
             Style = style;

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DesktopBackgroundScribbler
 {
-    class TextPath
+    public class TextPath
     {
         static StringFormat stringFormat = new StringFormat(StringFormat.GenericDefault)
         {
@@ -21,10 +21,11 @@ namespace DesktopBackgroundScribbler
         public TextPath(string text, FontInfo fontInfo, float fontSize)
         {
             Path = new GraphicsPath(FillMode.Winding);
+            // AddPath() のフォントサイズはピクセル単位で指定することに注意。
             Path.AddString(text, fontInfo.Family, (int)fontInfo.Style, fontSize, Point.Empty, stringFormat);
         }
 
-        internal void Transform(double scaleRatio, double angle, PointF point)
+        public void Transform(double scaleRatio, double angle, PointF point)
         {
             var matrix = new Matrix();
             matrix.Translate(point.X, point.Y);
