@@ -66,12 +66,20 @@ namespace DesktopBackgroundScribbler
 
         private void ForwardHistory()
         {
-            Text = mainModel.GetHistory(1);
+            var text = mainModel.ForwardHistory();
+            if (text != null)
+            {
+                Text = text;
+            }
         }
 
         private void BackHistory()
         {
-            Text = mainModel.GetHistory(-1);
+            var text = mainModel.BackHistory();
+            if (text != null)
+            {
+                Text = text;
+            }
         }
     }
 }

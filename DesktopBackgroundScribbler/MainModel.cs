@@ -26,6 +26,8 @@ namespace DesktopBackgroundScribbler
 
         Random random = new Random();
 
+        History history = new History();
+
         Bitmap bitmap;
         Graphics graphics;
 
@@ -253,6 +255,9 @@ namespace DesktopBackgroundScribbler
             // 第4引数の1は設定を更新するということ。なお、もし問題があったら第4引数を1 | 2にするとよいかもしれない。
             // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
             SystemParametersInfo(20, 0, filePath, 1);
+
+            // 履歴
+            history.Push(text);
         }
 
         private double GenerateRandomScaleRatio(float minFontSize, float maxFontSize, float pathWidth, float pathHeight, int imageWidth, int imageHeight, Random random)
@@ -460,32 +465,14 @@ namespace DesktopBackgroundScribbler
             }
         }
 
-        internal string GetHistory(int change)
+        internal string ForwardHistory()
         {
-            if (change > 0)
-            {
-                if (stringFocusIndex != stringLeadIndex)
-                {
-                    IncrementStringIndex(ref stringFocusIndex);
-                    if (stringFocusIndex == stringLeadIndex)
-                        return string.Empty;
-                    else
-                        return stringHistory[stringFocusIndex];
-                }
-            }
-            else if (change < 0)
-            {
-                int index = stringFocusIndex - 1;
-                if (index < 0)
-                    index = stringCount;
-                if (index != stringLeadIndex)
-                {
-                    stringFocusIndex = index;
-                    return stringHistory[stringFocusIndex];
-                }
-            }
+            return history.ForwardHistory();
+        }
 
-            return null;
+        internal string BackHistory()
+        {
+            return history.BackHistory();
         }
 
         private void Window_Closed(object sender, EventArgs e)
