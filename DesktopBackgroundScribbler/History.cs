@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,8 +9,19 @@ namespace DesktopBackgroundScribbler
 {
     class History
     {
+        const string filePath = "History.txt";
+
         List<string> texts = new List<string>();
         int index = 0;
+
+        internal History()
+        {
+            if (File.Exists(filePath))
+            {
+                texts.AddRange(File.ReadAllLines(filePath));
+                index = texts.Count;
+            }
+        }
 
         // 履歴が5個のとき:
         // [0][1][2][3][4] * 1回戻ると4、もう1回戻ると3、……
@@ -43,6 +55,12 @@ namespace DesktopBackgroundScribbler
             return index == 0
                 ? null
                 : texts[--index];
+        }
+
+        internal void Save()
+        {
+            var offset = texts.Count - 1000;
+            File.WriteAllLines(filePath, texts.Skip(offset));
         }
     }
 }

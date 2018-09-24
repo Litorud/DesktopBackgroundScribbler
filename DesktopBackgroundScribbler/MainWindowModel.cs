@@ -81,5 +81,10 @@ namespace DesktopBackgroundScribbler
                 Text = text;
             }
         }
+
+        internal void SaveHistory()
+        {
+            mainModel.SaveHistory();
+        }
     }
 }

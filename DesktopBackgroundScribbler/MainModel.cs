@@ -48,17 +48,6 @@ namespace DesktopBackgroundScribbler
 
         int undoCount = 0; // 何回元に戻す操作を行ったかを表す。文字列履歴と違い、余分データを持たせないので、focus変数だけでなくこの変数が必要。
 
-        // 文字列の履歴関係
-        const char STRING_SEPARATOR = '\n';
-        const int STRING_HISTORY_SIZE = 10;
-        const int STRING_HISTORY_LENGTH = STRING_HISTORY_SIZE + 1; // ダミーとして、存在するHistoryEntryの数は常に保存できる履歴の数より一つ多い。
-        string[] stringHistory;
-        int stringLeadIndex; // 次に更新される履歴（=最も古い履歴）を表す。
-        int stringFocusIndex;
-        int stringCount; // 保持している履歴の数を表す。したがって、STRING_HISTORY_SIZEと等しい数を最大とする。これは、stringHistoryにおける最大の添え字も意味する。
-        delegate void StringHistoryUpdate(string text);
-        StringHistoryUpdate UpdateStringHistory;
-
         public MainModel()
         {
             //
@@ -76,39 +65,11 @@ namespace DesktopBackgroundScribbler
                 imageCount = bytes[1];
 
                 imageFocusIndex = imageLeadIndex;
-
-                // 文字列の履歴関係
-                stringHistory = Encoding.UTF8.GetString(bytes, 2, bytes.Length - 2).Split(STRING_SEPARATOR);
-
-                stringCount = stringHistory.Length;
-
-                if (stringCount > STRING_HISTORY_SIZE)
-                {
-                    stringCount = STRING_HISTORY_SIZE;
-                    UpdateStringHistory = ModifyHistory;
-                }
-                else if (stringCount == STRING_HISTORY_SIZE)
-                {
-                    UpdateStringHistory = ModifyHistory;
-                }
-                else
-                {
-                    UpdateStringHistory = AddHistory;
-                }
-
-                Array.Resize(ref stringHistory, STRING_HISTORY_LENGTH);
-
-                stringLeadIndex = stringFocusIndex = stringCount;
             }
             else
             {
                 // 画像の履歴関係
                 imageLeadIndex = imageFocusIndex = imageCount = 0;
-
-                // 文字列の履歴関係
-                stringHistory = new string[STRING_HISTORY_LENGTH];
-                UpdateStringHistory = AddHistory;
-                stringLeadIndex = stringFocusIndex = stringCount = 0;
             }
 
             // 画像の履歴関係
@@ -136,26 +97,6 @@ namespace DesktopBackgroundScribbler
         }
 
         //
-        // 文字列の履歴関係
-        //
-
-        private void ModifyHistory(string text)
-        {
-            stringHistory[stringLeadIndex] = text;
-
-            IncrementStringIndex(ref stringLeadIndex);
-        }
-
-        private void AddHistory(string text)
-        {
-            stringHistory[stringLeadIndex] = text;
-            stringLeadIndex++;
-
-            if (++stringCount == STRING_HISTORY_SIZE)
-                UpdateStringHistory = ModifyHistory;
-        }
-
-        //
         // 履歴の添え字を増減させるためのメソッドたち。
         //
 
@@ -171,22 +112,6 @@ namespace DesktopBackgroundScribbler
         {
             if (i == 0)
                 i = IMAGE_MAX_INDEX;
-            else
-                i--;
-        }
-
-        void IncrementStringIndex(ref int i)
-        {
-            if (i >= stringCount)
-                i = 0;
-            else
-                i++;
-        }
-
-        void DecrementStringIndex(ref int i)
-        {
-            if (i == 0)
-                i = stringCount;
             else
                 i--;
         }
@@ -424,10 +349,6 @@ namespace DesktopBackgroundScribbler
                     undoCount = 0;
                 }
             }
-
-            // 文字列の履歴更新処理
-            UpdateStringHistory(text);
-            stringFocusIndex = stringLeadIndex; // focusを先頭に戻す。
         }
 
         internal void Undo()
@@ -475,6 +396,11 @@ namespace DesktopBackgroundScribbler
             return history.BackHistory();
         }
 
+        internal void SaveHistory()
+        {
+            history.Save();
+        }
+
         private void Window_Closed(object sender, EventArgs e)
         {
             // 画像の履歴関係
@@ -502,36 +428,7 @@ namespace DesktopBackgroundScribbler
             bytes1[1] = (byte)(imageCount - undoCount);
 
             // 文字列の履歴関係
-
-            if (!Directory.Exists(HISTORY_DIRECTORY))
-                Directory.CreateDirectory(HISTORY_DIRECTORY);
-
-            // 先に書き込まれるものほど古いデータ。
             StringBuilder sb = new StringBuilder();
-
-            // 以下では、leadIndex及びfocusIndexを通常とは別の意味で使いまわしている。
-            if (stringCount < STRING_HISTORY_SIZE)
-            {
-                stringFocusIndex = 0;
-            }
-            else
-            {
-                if (stringLeadIndex >= stringCount)
-                    stringFocusIndex = 0;
-                else
-                    stringFocusIndex = stringLeadIndex + 1;
-            }
-
-            DecrementStringIndex(ref stringLeadIndex);
-
-            while (stringFocusIndex != stringLeadIndex)
-            {
-                sb.Append(stringHistory[stringFocusIndex]);
-                sb.Append(STRING_SEPARATOR);
-                IncrementStringIndex(ref stringFocusIndex);
-            }
-
-            sb.Append(stringHistory[stringFocusIndex]);
 
             // 出力。
             byte[] bytes2 = Encoding.UTF8.GetBytes(sb.ToString());

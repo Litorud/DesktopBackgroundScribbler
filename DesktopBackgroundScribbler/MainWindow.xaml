@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DesktopBackgroundScribbler"
         mc:Ignorable="d"
-        Title="Desktop Background Scribbler" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" FocusManager.FocusedElement="{Binding ElementName=text}">
+        Title="Desktop Background Scribbler" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" FocusManager.FocusedElement="{Binding ElementName=text}"
+        Closed="Window_Closed">
     <Window.DataContext>
-        <local:MainWindowModel/>
+        <local:MainWindowModel x:Name="mainWindowModel"/>
     </Window.DataContext>
     <Window.InputBindings>
         <KeyBinding Command="{Binding UndoCommand}" Gesture="Ctrl+Shift+Z"/>
