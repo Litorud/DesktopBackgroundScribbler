@@ -30,8 +30,9 @@ namespace DesktopBackgroundScribbler
             text.GetBindingExpression(TextBox.TextProperty).UpdateSource();
         }
 
-        private void Window_Closed(object sender, EventArgs e)
+        protected override void OnClosed(EventArgs e)
         {
+            base.OnClosed(e);
             mainWindowModel.SaveHistory();
         }
     }
