@@ -161,7 +161,7 @@ namespace DesktopBackgroundScribbler
             var brush = new SolidBrush(color);
 
             // 色から、縁取りの色を求める。
-            var strokeColor = color.GetBrightness() > 0.95F ? Color.Black : Color.White;
+            var strokeColor = color.GetBrightness() > 0.90F ? Color.Black : Color.White;
 
             // 拡大率から、縁取りの幅を決定する。
             var strokeWidth = GenerateRandomStrokeWidth(scaleRatio, random);

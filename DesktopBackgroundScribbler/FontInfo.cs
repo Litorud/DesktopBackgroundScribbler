@@ -38,7 +38,9 @@ namespace DesktopBackgroundScribbler
             var japaneseFontFamilies = GetFontFamilies(
                 "メイリオ",
                 "游ゴシック",
-                "游明朝");
+                "游明朝",
+                "UD デジタル 教科書体 NK-R",
+                "UD デジタル 教科書体 NK-B");
             var latinFontFamilies = GetFontFamilies(
                 "Comic Sans MS",
                 "Georgia",
