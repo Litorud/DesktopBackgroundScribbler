@@ -249,9 +249,9 @@ namespace DesktopBackgroundScribbler
         private double GenerateRandomStrokeWidth(double scaleRatio, Random random)
         {
             // scaleRatio が1（=フォントサイズが10.8）のとき、1～3の範囲でランダムに幅を決めたい。
-            // scaleRatio が100（フォントサイズが1080）のとき、10～50の範囲でランダムに幅を決めたい。
-            var 振れ幅 = 38 * scaleRatio / 99 + 1.6;
-            var オフセット = scaleRatio / 11 + 0.9;
+            // scaleRatio が100（フォントサイズが1080）のとき、3～50の範囲でランダムに幅を決めたい。
+            var 振れ幅 = 45 * scaleRatio / 99 + 1.5;
+            var オフセット = 2 * scaleRatio / 99 + 1;
             // 上記式の第2項は、毎回割り算が発生するコストが見合わないので、
             // 近似値のリテラルで置き換えている。
 
