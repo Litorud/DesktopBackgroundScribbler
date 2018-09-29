@@ -115,12 +115,21 @@ namespace DesktopBackgroundScribbler
             return new PointF((float)x, (float)y);
         }
 
+        private Color GenerateRandomColor()
+        {
+            var r = random.Next(256);
+            var g = random.Next(256);
+            var b = random.Next(256);
+            return Color.FromArgb(r, g, b);
+        }
+
         private double GenerateRandomStrokeWidth(double scaleRatio)
         {
             // scaleRatio が1（=フォントサイズが10.8）のとき、1～3の範囲でランダムに幅を決めたい。
-            // scaleRatio が100（フォントサイズが1080）のとき、3～50の範囲でランダムに幅を決めたい。
-            var 振れ幅 = 45 * scaleRatio / 99 + 1.5;
-            var オフセット = 2 * scaleRatio / 99 + 1;
+            // scaleRatio が100（=フォントサイズが1080）のとき、2～10の範囲でランダムに幅を決めたい。
+            // 連立方程式解いて定数を求めた。
+            var 振れ幅 = 2 * scaleRatio / 33 + 1.9;
+            var オフセット = scaleRatio / 99 + 1;
             // 上記式の第2項は、毎回割り算が発生するコストが見合わないので、
             // 近似値のリテラルで置き換えている。
 
@@ -128,14 +137,6 @@ namespace DesktopBackgroundScribbler
 
             // 別の求め方として、許容する最小の幅と最大の幅を計算し、
             // (最大幅 - 最小幅) * random.NextDouble() + 最小幅 を返す方法もある。
-        }
-
-        private Color GenerateRandomColor()
-        {
-            var r = random.Next(256);
-            var g = random.Next(256);
-            var b = random.Next(256);
-            return Color.FromArgb(r, g, b);
         }
 
         private void Draw(Graphics graphics, TextPath textPath, double scaleRatio, double angle, PointF point, Color color, double strokeWidth)
