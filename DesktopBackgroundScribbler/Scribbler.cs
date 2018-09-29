@@ -14,13 +14,13 @@ namespace DesktopBackgroundScribbler
 
         public void Scribble(string text, Graphics graphics, int width, int height)
         {
-            // フォントファミリーとフォントスタイルをランダムに決定する。
-            var fontInfo = FontInfo.GenerateRandomFontInfo(text, random);
-
             // 画像のサイズから、最小フォントサイズを短辺の1/100と決定する。また、最大フォントサイズを短辺の2倍と決定する。
             var 短辺 = Math.Min(width, height);
             var minFontSize = 短辺 / 100F;
             var maxFontSize = 短辺 * 2F;
+
+            // フォントファミリーとフォントスタイルをランダムに決定する。
+            var fontInfo = FontInfo.GenerateRandomFontInfo(text, random);
 
             // フォントファミリー、フォントスタイル、最小フォントサイズから、テキストパスサイズを求める。
             var textPath = new TextPath(text, fontInfo, minFontSize);
@@ -44,24 +44,14 @@ namespace DesktopBackgroundScribbler
                 width, height,
                 angle);
 
-            // 拡大率、傾き、位置に基づいて GraphicsPath を変換する。
-            textPath.Transform(scaleRatio, angle, point);
-
             // 色を決定する。色に基づいて Brush を作成する。
             var color = GenerateRandomColor();
-            var brush = new SolidBrush(color);
-
-            // 色から、縁取りの色を求める。
-            var strokeColor = color.GetBrightness() > 0.90F ? Color.Black : Color.White;
 
             // 拡大率から、縁取りの幅を決定する。
             var strokeWidth = GenerateRandomStrokeWidth(scaleRatio);
 
-            // 縁取りの色、縁取りの幅に基づいて Pen を作成する。
-            var pen = new Pen(strokeColor, (float)strokeWidth);
-
-            graphics.DrawPath(pen, textPath.Path);
-            graphics.FillPath(brush, textPath.Path);
+            // 実際に描画。
+            Draw(graphics, textPath, scaleRatio, angle, point, color, strokeWidth);
         }
 
         private double GenerateRandomScaleRatio(float minFontSize, float maxFontSize, float pathWidth, float pathHeight, int imageWidth, int imageHeight)
@@ -146,6 +136,22 @@ namespace DesktopBackgroundScribbler
             var g = random.Next(256);
             var b = random.Next(256);
             return Color.FromArgb(r, g, b);
+        }
+
+        private void Draw(Graphics graphics, TextPath textPath, double scaleRatio, double angle, PointF point, Color color, double strokeWidth)
+        {
+            // 拡大率、傾き、位置に基づいて GraphicsPath を変換する。
+            textPath.Transform(scaleRatio, angle, point);
+
+            // 色から、縁取りの色を求める。
+            var strokeColor = color.GetBrightness() > 0.90F ? Color.Black : Color.White;
+
+            // 色、縁取りの色、縁取りの幅に基づいて Brush と Pen を作成する。
+            var brush = new SolidBrush(color);
+            var pen = new Pen(strokeColor, (float)strokeWidth);
+
+            graphics.DrawPath(pen, textPath.Path);
+            graphics.FillPath(brush, textPath.Path);
         }
     }
 }
