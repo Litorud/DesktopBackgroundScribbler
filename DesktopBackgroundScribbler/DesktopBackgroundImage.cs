@@ -61,9 +61,9 @@ namespace DesktopBackgroundScribbler
 
         private void DrawWallpaper()
         {
-            using (var key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
+            using (var key = GetDesktopKey())
             {
-                var wallpaper = Convert.ToString(key.GetValue("Wallpaper"));
+                var wallpaper = GetWallpaperValue(key);
                 if (!File.Exists(wallpaper))
                 {
                     return;
@@ -129,6 +129,16 @@ namespace DesktopBackgroundScribbler
                 }
                 catch { }
             }
+        }
+
+        private static RegistryKey GetDesktopKey()
+        {
+            return Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop");
+        }
+
+        private static string GetWallpaperValue(RegistryKey key)
+        {
+            return Convert.ToString(key.GetValue("Wallpaper"));
         }
 
         private void PutImage(Image image)
@@ -226,6 +236,14 @@ namespace DesktopBackgroundScribbler
         internal void Save(string filePath)
         {
             bitmap.Save(filePath, ImageFormat.Bmp);
+        }
+
+        internal static string GetCurrentPath()
+        {
+            using (var key = GetDesktopKey())
+            {
+                return GetWallpaperValue(key);
+            }
         }
 
         #region IDisposable Support

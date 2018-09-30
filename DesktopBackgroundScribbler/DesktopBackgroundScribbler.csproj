@@ -116,6 +116,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "D:\litor\Documents\Visual Studio 2017\Projects\DesktopBackgroundScribbler\DesktopBackgroundScribbler\bin\Debug" "D:\temp"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>
