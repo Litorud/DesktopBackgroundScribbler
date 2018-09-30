@@ -43,6 +43,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -58,12 +59,13 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
+    <Page Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </ApplicationDefinition>
+    </Page>
     <Compile Include="FontInfo.cs" />
     <Compile Include="History.cs" />
+    <Compile Include="IActivatable.cs" />
     <Compile Include="Scribbler.cs" />
     <Compile Include="TextPath.cs" />
     <Page Include="MainWindow.xaml">
@@ -113,4 +115,7 @@
     <Resource Include="DesktopBackgroundScribbler.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy "D:\litor\Documents\Visual Studio 2017\Projects\DesktopBackgroundScribbler\DesktopBackgroundScribbler\bin\Debug" "D:\temp"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
