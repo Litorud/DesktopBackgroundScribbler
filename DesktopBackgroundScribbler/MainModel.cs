@@ -28,8 +28,6 @@ namespace DesktopBackgroundScribbler
 
         Scribbler scribbler = new Scribbler();
 
-        int undoCount = 0;
-
         History history = new History();
 
         public void Scribble(string text)
@@ -42,7 +40,7 @@ namespace DesktopBackgroundScribbler
             {
                 scribbler.Scribble(text, image.Graphics, imageBounds.Width, imageBounds.Height);
 
-                BackupImage();
+                Backup(image.Original);
                 image.Save(filePath);
             }
 
@@ -53,41 +51,44 @@ namespace DesktopBackgroundScribbler
             history.Push(text);
         }
 
-        private void BackupImage()
+        private void Backup(string currentPath)
         {
-            switch (undoCount)
+            if (File.Exists(currentPath))
             {
-                case 0:
-                    var newFileName = DateTime.Now.ToString("yyyyMMddTHHmmss") + Path.GetExtension(filePath);
-                    var destPath = Path.Combine(backupDirectory, newFileName);
-
-                    Directory.CreateDirectory(backupDirectory);
-                    File.Copy(filePath, destPath);
-
-                    // 古い画像を削除する。
-                    var query = Directory.EnumerateFiles(backupDirectory)
-                        .OrderByDescending(f => Path.GetFileName(f))
-                        .Skip(10);
-                    foreach (var f in query)
-                    {
-                        File.Delete(f);
-                    }
-                    break;
-                case 1:
-                    return;
-                default:
+                var fullPath = Path.GetFullPath(currentPath);
+                // 現在の背景が Backup\* の場合、現在の背景より新しい Backup\* を削除する。
+                if (Path.GetDirectoryName(fullPath) == backupDirectory)
+                {
                     if (Directory.Exists(backupDirectory))
                     {
-                        var query2 = Directory.EnumerateFiles(backupDirectory)
-                            .OrderByDescending(f => f)
-                            .Take(undoCount - 1);
-                        foreach (var file in query2)
+                        var name = Path.GetFileName(currentPath);
+                        foreach (var f in Directory.EnumerateFiles(backupDirectory)
+                            .Where(f => Path.GetFileName(f).CompareTo(name) > 0))
                         {
-                            File.Delete(file);
+                            File.Delete(f);
                         }
                     }
-                    undoCount = 0;
-                    break;
+                    return;
+                }
+            }
+
+            // 現在の背景が Backup\* ではなく、Background.bmp が存在する場合、
+            // Background.bmp をバックアップする。
+            if (File.Exists(filePath))
+            {
+                var newFileName = DateTime.Now.ToString("yyyyMMddTHHmmss,fff") + Path.GetExtension(filePath);
+                var destPath = Path.Combine(backupDirectory, newFileName);
+
+                Directory.CreateDirectory(backupDirectory);
+                File.Move(filePath, destPath);
+
+                // 古い画像を削除する。
+                foreach (var f in Directory.EnumerateFiles(backupDirectory)
+                    .OrderByDescending(f => Path.GetFileName(f))
+                    .Skip(10))
+                {
+                    File.Delete(f);
+                }
             }
         }
 
@@ -98,7 +99,7 @@ namespace DesktopBackgroundScribbler
             SystemParametersInfo(20, 0, filePath, 1);
         }
 
-        internal void Undo()
+        public void Undo()
         {
             // 現在の背景のパスを取得する。
             var currentPath = DesktopBackgroundImage.GetCurrentPath();
@@ -112,6 +113,15 @@ namespace DesktopBackgroundScribbler
                 if (File.Exists(filePath))
                 {
                     SetBackgroundImage(filePath);
+                }
+                else if (Directory.Exists(backupDirectory))
+                {
+                    var files = Directory.EnumerateFiles(backupDirectory);
+                    if (files.Any())
+                    {
+                        var path = files.OrderByDescending(f => Path.GetFileName(f)).First();
+                        SetBackgroundImage(path);
+                    }
                 }
                 return;
             }
@@ -127,11 +137,11 @@ namespace DesktopBackgroundScribbler
                     return;
                 }
 
-                var path = Directory.EnumerateFiles(backupDirectory).OrderByDescending(f => Path.GetFileName(f)).FirstOrDefault();
-                if (path != null)
+                var files = Directory.EnumerateFiles(backupDirectory);
+                if (files.Any())
                 {
+                    var path = files.OrderByDescending(f => Path.GetFileName(f)).First();
                     SetBackgroundImage(path);
-                    undoCount++;
                 }
             }
             else if (Path.GetDirectoryName(currentFullPath) == backupDirectory)
@@ -152,7 +162,6 @@ namespace DesktopBackgroundScribbler
                 if (file != null)
                 {
                     SetBackgroundImage(file.Path);
-                    undoCount++;
                 }
             }
             else
@@ -166,7 +175,7 @@ namespace DesktopBackgroundScribbler
             }
         }
 
-        internal void Redo()
+        public void Redo()
         {
             // 現在の背景のパスを取得する。
             var currentPath = DesktopBackgroundImage.GetCurrentPath();
@@ -197,7 +206,6 @@ namespace DesktopBackgroundScribbler
                 if (!Directory.Exists(backupDirectory))
                 {
                     SetBackgroundImage(filePath);
-                    undoCount--;
                     return;
                 }
 
@@ -210,12 +218,10 @@ namespace DesktopBackgroundScribbler
                 if (file == null)
                 {
                     SetBackgroundImage(filePath);
-                    undoCount--;
                 }
                 else
                 {
                     SetBackgroundImage(file.Path);
-                    undoCount--;
                 }
             }
         }

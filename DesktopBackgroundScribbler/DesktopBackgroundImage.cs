@@ -17,6 +17,8 @@ namespace DesktopBackgroundScribbler
 
         public Graphics Graphics { get; private set; }
 
+        public string Original { get; private set; }
+
         public DesktopBackgroundImage(int width, int height)
         {
             bitmap = new Bitmap(width, height);
@@ -63,8 +65,8 @@ namespace DesktopBackgroundScribbler
         {
             using (var key = GetDesktopKey())
             {
-                var wallpaper = GetWallpaperValue(key);
-                if (!File.Exists(wallpaper))
+                Original = GetWallpaperValue(key);
+                if (!File.Exists(Original))
                 {
                     return;
                 }
@@ -78,7 +80,7 @@ namespace DesktopBackgroundScribbler
                     // 厳密には、HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Desktop\General などを調べることで、
                     // 元画像からデスクトップの背景を再現できる。
                     // 参考 : http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1064110280
-                    using (var wallpaperBitmap = new Bitmap(wallpaper))
+                    using (var wallpaperBitmap = new Bitmap(Original))
                     {
                         // (TileWallpaper, WallpaperStyle)
                         // ページ幅に合わせる　　: (0, 10)
