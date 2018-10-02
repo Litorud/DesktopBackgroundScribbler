@@ -103,48 +103,33 @@ namespace DesktopBackgroundScribbler
         {
             // 現在の背景のパスを取得する。
             var currentPath = DesktopBackgroundImage.GetCurrentPath();
-
-            // 現在の背景のパスが存在しない場合、それは有効なパスではない可能性がある。
-            // 有効かもしれないが、簡単には判別できない。
-            // そこで、このような場合はこのプログラムが管理する最新の背景を設定する。
-            // 最新の背景も存在しない場合は何もしない。
-            if (!File.Exists(currentPath))
+            if (string.IsNullOrWhiteSpace(currentPath))
             {
-                if (File.Exists(filePath))
-                {
-                    SetBackgroundImage(filePath);
-                }
-                else if (Directory.Exists(backupDirectory))
-                {
-                    var files = Directory.EnumerateFiles(backupDirectory);
-                    if (files.Any())
-                    {
-                        var path = files.OrderByDescending(f => Path.GetFileName(f)).First();
-                        SetBackgroundImage(path);
-                    }
-                }
+                最新の画像を設定();
                 return;
             }
 
-            var currentFullPath = Path.GetFullPath(currentPath);
+            string currentFullPath;
+            try
+            {
+                currentFullPath = Path.GetFullPath(currentPath);
+            }
+            catch
+            {
+                // GetFullPath で例外が発生するということは、レジストリに無効なパスが設定されていたということ。
+                // この場合は、このプログラムが分かる最も新しい画像を設定する。
+                最新の画像を設定();
+                return;
+            }
 
             if (currentFullPath == filePath)
             {
-                // 現在の背景のパスが Background.bmp ならば、Backup 内の最新の画像を設定する。
-                // Backup 内に画像が一切無い場合は何もしない。
-                if (!Directory.Exists(backupDirectory))
-                {
-                    return;
-                }
-
-                var files = Directory.EnumerateFiles(backupDirectory);
-                if (files.Any())
-                {
-                    var path = files.OrderByDescending(f => Path.GetFileName(f)).First();
-                    SetBackgroundImage(path);
-                }
+                // 現在の背景のパスが Background.bmp ならば、一つ古い画像を設定する。
+                最新のバックアップを設定();
+                return;
             }
-            else if (Path.GetDirectoryName(currentFullPath) == backupDirectory)
+
+            if (Path.GetDirectoryName(currentFullPath) == backupDirectory)
             {
                 // 現在の背景のパスが Backup 内の画像を指しているならば、その画像より一つ古い画像を設定する。
                 // そのような画像が無ければ何もしない。
@@ -154,25 +139,47 @@ namespace DesktopBackgroundScribbler
                 }
 
                 var currentFileName = Path.GetFileName(currentPath);
-                var file = Directory.EnumerateFiles(backupDirectory)
+                var files = Directory.EnumerateFiles(backupDirectory)
                     .Select(f => new { Name = Path.GetFileName(f), Path = f })
                     .Where(f => f.Name.CompareTo(currentFileName) < 0)
-                    .OrderByDescending(f => f.Name)
-                    .FirstOrDefault();
-                if (file != null)
+                    .OrderByDescending(f => f.Name);
+                if (files.Any())
                 {
-                    SetBackgroundImage(file.Path);
+                    SetBackgroundImage(Path.GetFullPath(files.First().Path));
                 }
+                return;
             }
-            else
+
+            // ここに到達するということは、有効ではあるが全くあずかり知らぬパスが設定されているということ。
+            最新の画像を設定();
+        }
+
+        private void 最新の画像を設定()
+        {
+            if (File.Exists(filePath))
             {
-                // 現在の背景のパスは存在するが、それはこのプログラムによって設定したものではない場合。
-                // Background.bmp を設定する。
-                if (File.Exists(filePath))
-                {
-                    SetBackgroundImage(filePath);
-                }
+                SetBackgroundImage(filePath);
+                return;
             }
+
+            最新のバックアップを設定();
+        }
+
+        private void 最新のバックアップを設定()
+        {
+            if (!Directory.Exists(backupDirectory))
+            {
+                return;
+            }
+
+            var files = Directory.EnumerateFiles(backupDirectory);
+            if (!files.Any())
+            {
+                return;
+            }
+
+            var first = files.OrderByDescending(f => f).First();
+            SetBackgroundImage(Path.GetFullPath(first));
         }
 
         public void Redo()
@@ -180,49 +187,52 @@ namespace DesktopBackgroundScribbler
             // 現在の背景のパスを取得する。
             var currentPath = DesktopBackgroundImage.GetCurrentPath();
 
-            // 現在の背景のパスが Background.bmp ならば、すでに最新の背景が設定されており、やり直す先は無い。
-            // そのため、何もしない。
-            if (currentPath == filePath)
+            // 現在の背景のパスが Background.bmp、または無効なパスならばやり直せない。
+            if (currentPath == filePath || string.IsNullOrWhiteSpace(currentPath))
             {
                 return;
             }
 
-            // 現在の背景のパスが存在しない場合、それはこのプログラムとは関係ない操作で設定されたパスである。
-            // 「やり直し」はあくまで、「元に戻す」操作に対して「やり直し」するものなので、
-            // プログラムとは関係ない操作に対して「やり直し」はできない。
-            // したがって、何もしない。
-            if (!File.Exists(currentPath))
+            string directoryName;
+            try
+            {
+                directoryName = Path.GetDirectoryName(currentPath);
+            }
+            catch
+            {
+                // GetDirectoryName で例外が発生するということは、レジストリに無効なパスが設定されていたということ。
+                // この場合はやり直せない。
+                return;
+            }
+
+            // 現在の背景のパスが Backup 内の画像を指していなければ、やり直せない。
+            if (directoryName != backupDirectory)
             {
                 return;
             }
 
-            var currentFullPath = Path.GetFullPath(currentPath);
-
-            if (Path.GetDirectoryName(currentFullPath) == backupDirectory)
+            // 現在の背景のパスが Backup 内の画像を指しているならば、その画像より一つ新しい画像を設定する。
+            if (!Directory.Exists(backupDirectory))
             {
-                // 現在の背景のパスが Backup 内の画像を指しているならば、その画像より一つ新しい画像を設定する。
-                // そのような画像が無ければ、Background.bmp を設定する。
-                // Backup が存在しなければ、Backup 内の一つ新しい画像もあるわけがないので、Background.bmp を設定する。
-                if (!Directory.Exists(backupDirectory))
+                if (File.Exists(filePath))
                 {
                     SetBackgroundImage(filePath);
-                    return;
                 }
+                return;
+            }
 
-                var currentFileName = Path.GetFileName(currentPath);
-                var file = Directory.EnumerateFiles(backupDirectory)
-                    .Select(f => new { Name = Path.GetFileName(f), Path = f })
-                    .Where(f => f.Name.CompareTo(currentFileName) > 0)
-                    .OrderBy(f => f.Name)
-                    .FirstOrDefault();
-                if (file == null)
-                {
-                    SetBackgroundImage(filePath);
-                }
-                else
-                {
-                    SetBackgroundImage(file.Path);
-                }
+            var currentFileName = Path.GetFileName(currentPath);
+            var files = Directory.EnumerateFiles(backupDirectory)
+                .Select(f => new { Name = Path.GetFileName(f), Path = f })
+                .Where(f => f.Name.CompareTo(currentFileName) > 0)
+                .OrderBy(f => f.Name);
+            if (files.Any())
+            {
+                SetBackgroundImage(Path.GetFullPath(files.First().Path));
+            }
+            else if (File.Exists(filePath))
+            {
+                SetBackgroundImage(filePath);
             }
         }
 
