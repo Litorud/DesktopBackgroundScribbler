@@ -19,7 +19,6 @@ namespace DesktopBackgroundScribbler
     {
         const string id = "{14482529-941C-4025-80F8-1836D76B064B}";
         const string baseAddress = "net.pipe://localhost/DesktopBackgroundScribbler";
-        const string address = "App";
 
         [STAThread]
         public static void Main()
@@ -33,18 +32,19 @@ namespace DesktopBackgroundScribbler
                 }
 
                 var app = new App();
-                app.InitializeComponent();
 
                 // http://nekojarashi.hatenablog.jp/entry/2017/08/14/WCF_%E3%81%A7%E7%B0%A1%E5%8D%98%E3%81%AB%E3%83%97%E3%83%AD%E3%82%BB%E3%82%B9%E9%96%93%E9%80%9A%E4%BF%A1
+                // https://docs.microsoft.com/ja-jp/dotnet/framework/wcf/migrating-from-net-remoting-to-wcf
                 // この辺参考にした。
                 using (var serviceHost = new ServiceHost(app, new Uri(baseAddress)))
                 {
                     serviceHost.AddServiceEndpoint(
                         typeof(IActivatable),
                         new NetNamedPipeBinding(),
-                        address);
+                        baseAddress);
                     serviceHost.Open();
 
+                    app.InitializeComponent();
                     app.Run();
                 }
             }
@@ -53,20 +53,21 @@ namespace DesktopBackgroundScribbler
         private static void ActivateExistingWindow()
         {
             var binding = new NetNamedPipeBinding();
-            var remoteAddress = new EndpointAddress($"{baseAddress}/{address}");
-            using (var channelFactory = new ChannelFactory<IActivatable>(binding, remoteAddress))
+            var remoteAddress = new EndpointAddress(baseAddress);
+            var activatable = ChannelFactory<IActivatable>.CreateChannel(binding, remoteAddress);
+
+            var count = 0;
+            while (!activatable.Activate() && count < 10)
             {
-                var activatable = channelFactory.CreateChannel();
-
-                bool activated;
-                var limit = DateTime.Now.AddSeconds(10);
-                do
-                {
-                    activated = activatable.Activate();
-                } while (!activated && DateTime.Now < limit);
-
-                (activatable as IClientChannel)?.Close();
+                // 最近の Windows は、入力中に突然別のウィンドウにフォーカスが奪われたりすることの無いように、
+                // Activate() を呼び出してもアクティブにせず、タスクバーアイコンを点滅させるだけで false を返すことがある。
+                // このような場合、以下の Sleep() が無いと、大量に Activate() を呼び出してしまい、タスクバーアイコンの点滅がちらつく。
+                // これを防ぐため、Sleep() で1秒おきにしか Activate() を呼び出さないようにしている。
+                Thread.Sleep(1000);
+                count++;
             }
+
+            (activatable as IClientChannel)?.Close();
         }
 
         public bool Activate()
