@@ -56,27 +56,22 @@ namespace DesktopBackgroundScribbler
             var remoteAddress = new EndpointAddress($"{baseAddress}/{address}");
             using (var channelFactory = new ChannelFactory<IActivatable>(binding, remoteAddress))
             {
-                var channel = channelFactory.CreateChannel();
+                var activatable = channelFactory.CreateChannel();
 
                 bool activated;
                 var limit = DateTime.Now.AddSeconds(10);
                 do
                 {
-                    activated = channel.Activate();
+                    activated = activatable.Activate();
                 } while (!activated && DateTime.Now < limit);
 
-                (channel as IClientChannel)?.Close();
+                (activatable as IClientChannel)?.Close();
             }
         }
 
         public bool Activate()
         {
-            var dispatcherOperation = Current?.Dispatcher?.BeginInvoke(new Func<bool>(() =>
-            {
-                return Current.MainWindow?.Activate() ?? false;
-            }));
-
-            return dispatcherOperation?.Result is bool b ? b : false;
+            return Dispatcher?.Invoke(() => MainWindow?.Activate()) ?? false;
         }
     }
 }
