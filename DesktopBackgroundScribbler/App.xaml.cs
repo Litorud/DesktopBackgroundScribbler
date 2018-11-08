@@ -53,21 +53,43 @@ namespace DesktopBackgroundScribbler
         private static void ActivateExistingWindow()
         {
             var binding = new NetNamedPipeBinding();
-            var remoteAddress = new EndpointAddress(baseAddress);
-            var activatable = ChannelFactory<IActivatable>.CreateChannel(binding, remoteAddress);
-
-            var count = 0;
-            while (!activatable.Activate() && count < 10)
+            var address = new EndpointAddress(baseAddress);
+            using (var channelFactory = new ChannelFactory<IActivatable>(binding, address))
             {
-                // 最近の Windows は、入力中に突然別のウィンドウにフォーカスが奪われたりすることの無いように、
-                // Activate() を呼び出してもアクティブにせず、タスクバーアイコンを点滅させるだけで false を返すことがある。
-                // このような場合、以下の Sleep() が無いと、大量に Activate() を呼び出してしまい、タスクバーアイコンの点滅がちらつく。
-                // これを防ぐため、Sleep() で1秒おきにしか Activate() を呼び出さないようにしている。
-                Thread.Sleep(1000);
-                count++;
-            }
+                var activatable = channelFactory.CreateChannel();
 
-            (activatable as IClientChannel)?.Close();
+                var count = 0;
+                do
+                {
+                    try
+                    {
+                        if (activatable.Activate())
+                        {
+                            break;
+                        }
+                    }
+                    catch (EndpointNotFoundException)
+                    {
+                        // EndpointNotFoundException が発生した IClientChannel は、状態が Faulted になり、
+                        // 以降、通信や Close() を実行しても、CommunicationObjectFaultedException になる。
+                        // そのため、新しいインスタンスを activatable に代入する必要がある。
+                        // なお、元のインスタンスは Abort() でリソースを解放する必要がある。
+                        // https://docs.microsoft.com/ja-jp/dotnet/api/system.servicemodel.icommunicationobject.state?view=netframework-4.7.2#System_ServiceModel_ICommunicationObject_State
+                        // 解放しなかった場合、ChannelFactory の Dispose() 時にも CommunicationObjectFaultedException が発生する。
+                        // Abort() を呼び出したからといって再利用できるようになるわけではない。
+                        (activatable as IClientChannel)?.Abort();
+                        activatable = channelFactory.CreateChannel();
+                    }
+
+                    // 最近の Windows は、入力中に突然別のウィンドウにフォーカスが奪われたりすることの無いように、
+                    // Activate() を呼び出してもアクティブにせず、タスクバーアイコンを点滅させるだけで false を返すことがある。
+                    // このような場合、以下の Sleep() が無いと、大量に Activate() を呼び出してしまい、タスクバーアイコンの点滅がちらつく。
+                    // これを防ぐため、Sleep() で1秒おきにしか Activate() を呼び出さないようにしている。
+                    Thread.Sleep(1000);
+                } while (++count < 10);
+
+                (activatable as IClientChannel)?.Close();
+            }
         }
 
         public bool Activate()
