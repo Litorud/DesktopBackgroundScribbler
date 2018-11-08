@@ -1,6 +1,9 @@
 # Desktop Background Scribbler
 Desktop Background Scribbler は、デスクトップの背景に文字をらくがきするプログラムです。
 
+## ダウンロード
+ - [バージョン 1.0](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.0/DesktopBackgroundScribbler.zip)
+
 ## 基本的な使い方
 起動するとテキストボックスが表示されます。
 テキストボックスに何か文字を入力して「描画」をクリックすると、その文字がデスクトップの背景に書かれます。
@@ -15,4 +18,17 @@ Desktop Background Scribbler は、デスクトップの背景に文字をらく
 ### 元に戻す/やり直し
 テキストボックスにフォーカスがあるとき、Ctrl+Shift+Z で、前回のらくがきを戻すことができます。
 最大で10回前まで戻せます。
+※最初のらくがきより前に戻すことはできません。
+
 また、Ctrl+Shift+Y で、元に戻したらくがきをやり直すことができます。
+
+## 注意
+### SmartScreen
+実行すると、たぶん Windows Defender SmartScreen にブロックされます。
+知らない人が作ったプログラムはマルウェアの可能性があるので、Windows がブロックするのです。
+実行するには「詳細」をクリックしてから「実行」をクリックします。
+
+### レジストリ
+デスクトップの背景を操作するわけなので、このプログラムはレジストリを変更します。
+変更するのはデスクトップの背景に関する値だけです。
+デスクトップの背景は、[Windows の設定]>[個人用設定]>[背景] で、いつでも変えることができます。
