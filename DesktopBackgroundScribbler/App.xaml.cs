@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.ServiceModel;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -43,6 +45,8 @@ namespace DesktopBackgroundScribbler
                         new NetNamedPipeBinding(),
                         baseAddress);
                     serviceHost.Open();
+
+                    AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
                     app.InitializeComponent();
                     app.Run();
@@ -95,6 +99,56 @@ namespace DesktopBackgroundScribbler
         public bool Activate()
         {
             return Dispatcher?.Invoke(() => MainWindow?.Activate()) ?? false;
+        }
+
+        public static void Log(object message)
+        {
+            var dateTimeStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var log = new StringBuilder(dateTimeStr).AppendLine(" ----------------").Append(message).AppendLine();
+            var fileInfo = new FileInfo("Log.log");
+
+            if (!fileInfo.Exists)
+            {
+                using (var stream = fileInfo.CreateText())
+                {
+                    stream.Write(log);
+                }
+                return;
+            }
+
+            if (fileInfo.Length < 1024 * 1024)
+            {
+                using (var stream = fileInfo.AppendText())
+                {
+                    stream.Write(log);
+                }
+                return;
+            }
+
+            string text;
+            using (var stream = fileInfo.OpenText())
+            {
+                text = stream.ReadToEnd();
+            }
+            text = text.Substring(text.Length / 2);
+            using (var stream = fileInfo.CreateText())
+            {
+                stream.Write(text);
+                stream.Write(log);
+            }
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                Log(e?.ExceptionObject);
+            }
+            catch
+            {
+                Console.WriteLine("エラーが発生しました。");
+                Console.WriteLine(e?.ExceptionObject);
+            }
         }
     }
 }
