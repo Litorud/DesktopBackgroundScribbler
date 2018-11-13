@@ -47,10 +47,9 @@ namespace DesktopBackgroundScribbler
                     .Split(default(char[]), StringSplitOptions.RemoveEmptyEntries);
                 foreach (var backgroundPart in backgroundParts)
                 {
-                    int i;
-                    if (int.TryParse(backgroundPart, out i))
+                    if (int.TryParse(backgroundPart, out int i))
                     {
-                        yield return i < 0 ? 0 : i > 255 ? 255 : i;
+                        yield return i < 0 ? 0 : i > 255 ? 255 : i; // i が0未満なら0、255超なら255を返す。
                     }
                 }
             }

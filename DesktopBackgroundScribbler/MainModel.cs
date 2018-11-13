@@ -94,9 +94,10 @@ namespace DesktopBackgroundScribbler
 
         private void SetBackgroundImage(string filePath)
         {
-            // 第4引数の1は設定を更新するということ。なお、もし問題があったら第4引数を1 | 2にするとよいかもしれない。
+            // 第4引数の1は設定を保存するということ。
             // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
-            SystemParametersInfo(20, 0, filePath, 1);
+            // これが無くて困ったことはないけど、問題となるアプリケーションもあるかもしれないので通知する。
+            SystemParametersInfo(20, 0, filePath, 1 | 2);
         }
 
         public void Undo()
