@@ -42,12 +42,11 @@ namespace DesktopBackgroundScribbler.Tests
         {
             const string defaultPath = @"C:\Windows\Web\Wallpaper\Windows\img0.jpg";
             const string backup = @"Backup";
-            const string background = @"Background.bmp";
 
             var mainModel = new MainModel();
             var i = 1;
 
-            Initialize(backup, background);
+            Initialize(backup);
 
             // 1度も書いてないとき、何も起こらないことを確認する。
             mainModel.Undo(); S();
@@ -59,12 +58,12 @@ namespace DesktopBackgroundScribbler.Tests
             // 1度書いただけでは、戻そうったって戻せないことを確認する。
             // ※書く前の状態とはどういう状態なのかを、このプログラムが完全に把握することは不可能なため。
             mainModel.Undo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // もう一度書く。
             mainModel.Scribble(i++.ToString()); S();
 
-            // Background.bmp からバックアップに戻せることを確認する。
+            // カレントディレクトリの Background_yyyyMMddTHHmmss,fff.bmp からバックアップに戻せることを確認する。
             mainModel.Undo(); S();
             var backupFile1 = Path.GetFullPath(Directory.EnumerateFiles(backup).OrderByDescending(f => f).First());
             Assert.AreEqual(GetCurrentPath(), backupFile1);
@@ -99,7 +98,7 @@ namespace DesktopBackgroundScribbler.Tests
 
             // 知らない背景のとき、戻すと、このプログラムが知っている最も新しい画像が使われることを確認する。
             mainModel.Undo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // まず戻した状態にして、さらに背景をなんか別のにする。
             mainModel.Undo(); S();
@@ -107,7 +106,7 @@ namespace DesktopBackgroundScribbler.Tests
 
             // 以前戻した状態であったとしても、今知らない背景のとき、戻すと、このプログラムが知っている最も新しい画像が使われることを確認する。
             mainModel.Undo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // 十度書く。
             mainModel.Scribble(i++.ToString()); S();
@@ -130,18 +129,18 @@ namespace DesktopBackgroundScribbler.Tests
 
             // 無効なパスが設定されているとき、戻すと、このプログラムが知っている最も新しい画像が使われることを確認する。
             mainModel.Undo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
-            // もう一度背景に無効なパスを設定し、Background.bmp を削除する。
+            // もう一度背景に無効なパスを設定し、カレントディレクトリの Background_yyyyMMddTHHmmss,fff.bmp を削除する。
             SystemParametersInfo(20, 0, ">", 1); S();
-            File.Delete(background); S();
+            File.Delete(GetCurrentDirectoryFilePath()); S();
 
-            // 無効なパスが設定されていて、しかも Background.bmp が無いときでも、戻すと、このプログラムが知っている最も新しい画像が使われることを確認する。
+            // 無効なパスが設定されていて、しかもカレントディレクトリの Background_yyyyMMddTHHmmss,fff.bmp が無いときでも、戻すと、このプログラムが知っている最も新しい画像が使われることを確認する。
             mainModel.Undo(); S();
             Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(Directory.EnumerateFiles(backup).OrderByDescending(f => f).First()));
         }
 
-        static void Initialize(string backupDirectory, string backgroundFile)
+        static void Initialize(string backupDirectory)
         {
             // Backup を削除する。
             if (Directory.Exists(backupDirectory))
@@ -149,8 +148,11 @@ namespace DesktopBackgroundScribbler.Tests
                 Directory.Delete(backupDirectory, true);
             }
 
-            // Background.bmp も削除する。
-            File.Delete(backgroundFile);
+            // Background_yyyyMMddTHHmmss,fff.bmp も削除する。
+            foreach (var f in Directory.EnumerateFiles(".", "Background_*.bmp"))
+            {
+                File.Delete(f);
+            }
 
             // 背景をなんか別のにする。
             // これで初起動時の状態になる。
@@ -170,17 +172,21 @@ namespace DesktopBackgroundScribbler.Tests
             }
         }
 
+        private string GetCurrentDirectoryFilePath()
+        {
+            return Path.GetFullPath(Directory.EnumerateFiles(".", "Background_*.bmp").First());
+        }
+
         [TestMethod()]
         public void RedoTest()
         {
             const string defaultPath = @"C:\Windows\Web\Wallpaper\Windows\img0.jpg";
             const string backup = @"Backup";
-            const string background = @"Background.bmp";
 
             var mainModel = new MainModel();
             var i = 1;
 
-            Initialize(backup, background);
+            Initialize(backup);
 
             // 1度も書いていないとき、何も起こらないことを確認する。
             mainModel.Redo(); S();
@@ -200,16 +206,16 @@ namespace DesktopBackgroundScribbler.Tests
 
             // 1度書いただけでは戻せないので、何も起こらないことを確認する。
             mainModel.Redo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             mainModel.Undo(); S();
             mainModel.Redo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             mainModel.Undo(); S();
             mainModel.Undo(); S();
             mainModel.Redo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // もう一度書く。
             mainModel.Scribble(i++.ToString()); S();
@@ -217,7 +223,7 @@ namespace DesktopBackgroundScribbler.Tests
             // 1回戻し、1回やり直せることを確認する。
             mainModel.Undo(); S();
             mainModel.Redo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // もう一度書く。
             mainModel.Scribble(i++.ToString()); S();
@@ -234,7 +240,7 @@ namespace DesktopBackgroundScribbler.Tests
 
             // もう一度書いたので、やり直す先だった Background.bmp と最新のバックアップは破棄され、もうやり直せないことを確認する。
             mainModel.Redo(); S();
-            Assert.AreEqual(GetCurrentPath(), Path.GetFullPath(background));
+            Assert.AreEqual(GetCurrentPath(), GetCurrentDirectoryFilePath());
 
             // 1回戻し、さらに背景をなんか別のにする。
             mainModel.Undo(); S();

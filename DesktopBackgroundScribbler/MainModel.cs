@@ -18,22 +18,32 @@ namespace DesktopBackgroundScribbler
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
-        readonly string backupDirectory = Path.GetFullPath(@"Backup");
-
-        // デスクトップの背景に設定する画像はカレントディレクトリに保存する方針だが、
-        // レジストリの登録は絶対パスでなければならないので、この時点で絶対パスに変換しておく。
-        // たとえばFile.Exists()やFile.Move()など、メソッドの内部で絶対パスを取得する処理をしているので、問題無いなら最初から絶対パスを渡したほうがよいと判断。
-        // ちなみに、プログラムの実行中にファイルの移動はおそらくできないはずなので、絶対パスを保持するようにしても問題無いはず。
-        readonly string filePath = Path.GetFullPath(@"Background.bmp");
+        readonly string currentDirectory;
+        readonly string backupDirectory;
 
         Scribbler scribbler = new Scribbler();
 
         History history = new History();
 
+        public MainModel()
+        {
+            currentDirectory = Directory.GetCurrentDirectory();
+            backupDirectory = Path.Combine(currentDirectory, @"Backup");
+        }
+
         public void Scribble(string text)
         {
             // デスクトップの背景となる画像のサイズを決定する。
             var imageBounds = Screen.PrimaryScreen.Bounds;
+
+            // ファイル名を決定する。
+            // デスクトップの背景が「単色」に設定されている場合、SystemParametersInfo でファイルパスを指定しても、
+            // それが以前設定していた画像パスと同じなら、画像の読み込みは行われず、既存の TranscodedWallpaper が使われ、
+            // 結果として意図しない背景になることがある。
+            // これに対応するため、日時付きのファイル名にして、同じ画像パスにならないようにする。
+            // v1.1 では、常に Background.bmp というファイル名だったので、上記現象が発生していた。
+            var fileName = "Background_" + DateTime.Now.ToString("yyyyMMddTHHmmss,fff") + ".bmp";
+            var filePath = Path.Combine(currentDirectory, fileName);
 
             // 描画
             using (var image = new DesktopBackgroundImage(imageBounds.Width, imageBounds.Height))
@@ -41,6 +51,7 @@ namespace DesktopBackgroundScribbler
                 scribbler.Scribble(text, image.Graphics, imageBounds.Width, imageBounds.Height);
 
                 Backup(image.Original);
+
                 image.Save(filePath);
             }
 
@@ -53,10 +64,12 @@ namespace DesktopBackgroundScribbler
 
         private void Backup(string currentPath)
         {
+            // 以下の処理において、currentPath が指すファイルが実際に存在しているかどうかは関係ないのだが、
+            // GetFullPath() で例外が発生するような文字列である可能性があるので、File.Exists() で検証している。
             if (File.Exists(currentPath))
             {
                 var fullPath = Path.GetFullPath(currentPath);
-                // 現在の背景が Backup\* の場合、現在の背景より新しい Backup\* を削除する。
+                // 現在の背景が Backup\* の場合、現在の背景より新しい Backup\* と、カレントディレクトリの Background_yyyyMMddTHHmmss,fff.bmp を削除する。
                 if (Path.GetDirectoryName(fullPath) == backupDirectory)
                 {
                     if (Directory.Exists(backupDirectory))
@@ -68,19 +81,29 @@ namespace DesktopBackgroundScribbler
                             File.Delete(f);
                         }
                     }
+
+                    foreach (var f in GetCurrentDirectoryFiles())
+                    {
+                        File.Delete(f);
+                    }
+
                     return;
                 }
             }
 
-            // 現在の背景が Backup\* ではなく、Background.bmp が存在する場合、
-            // Background.bmp をバックアップする。
-            if (File.Exists(filePath))
+            // 現在の背景が Backup\* ではなく、Background_yyyyMMddTHHmmss,fff.bmp が存在する場合、
+            // そのファイルをバックアップする。
+            var currentDirectoryFiles = GetCurrentDirectoryFiles();
+            if (currentDirectoryFiles.Any())
             {
-                var newFileName = DateTime.Now.ToString("yyyyMMddTHHmmss,fff") + Path.GetExtension(filePath);
-                var destPath = Path.Combine(backupDirectory, newFileName);
-
                 Directory.CreateDirectory(backupDirectory);
-                File.Move(filePath, destPath);
+                foreach (var f in currentDirectoryFiles)
+                {
+                    var fileName = Path.GetFileName(f);
+                    var destPath = Path.Combine(backupDirectory, fileName);
+
+                    File.Move(f, destPath);
+                }
 
                 // 古い画像を削除する。
                 foreach (var f in Directory.EnumerateFiles(backupDirectory)
@@ -90,6 +113,11 @@ namespace DesktopBackgroundScribbler
                     File.Delete(f);
                 }
             }
+        }
+
+        private IEnumerable<string> GetCurrentDirectoryFiles()
+        {
+            return Directory.EnumerateFiles(currentDirectory, "Background_*.bmp");
         }
 
         private void SetBackgroundImage(string filePath)
@@ -123,14 +151,15 @@ namespace DesktopBackgroundScribbler
                 return;
             }
 
-            if (currentFullPath == filePath)
+            var directoryName = Path.GetDirectoryName(currentFullPath);
+            if (directoryName == currentDirectory)
             {
-                // 現在の背景のパスが Background.bmp ならば、一つ古い画像を設定する。
+                // 現在の背景のパスがカレントディレクトリの画像を指しているならば、一つ古い画像を設定する。
                 最新のバックアップを設定();
                 return;
             }
 
-            if (Path.GetDirectoryName(currentFullPath) == backupDirectory)
+            if (directoryName == backupDirectory)
             {
                 // 現在の背景のパスが Backup 内の画像を指しているならば、その画像より一つ古い画像を設定する。
                 // そのような画像が無ければ何もしない。
@@ -157,9 +186,11 @@ namespace DesktopBackgroundScribbler
 
         private void 最新の画像を設定()
         {
-            if (File.Exists(filePath))
+            var files = GetCurrentDirectoryFiles();
+            if (files.Any())
             {
-                SetBackgroundImage(filePath);
+                var first = files.OrderByDescending(f => Path.GetFileName(f)).First();
+                SetBackgroundImage(Path.GetFullPath(first));
                 return;
             }
 
@@ -179,7 +210,7 @@ namespace DesktopBackgroundScribbler
                 return;
             }
 
-            var first = files.OrderByDescending(f => f).First();
+            var first = files.OrderByDescending(f => Path.GetFileName(f)).First();
             SetBackgroundImage(Path.GetFullPath(first));
         }
 
@@ -188,25 +219,21 @@ namespace DesktopBackgroundScribbler
             // 現在の背景のパスを取得する。
             var currentPath = DesktopBackgroundImage.GetCurrentPath();
 
-            // 現在の背景のパスが Background.bmp、または無効なパスならばやり直せない。
-            if (currentPath == filePath || string.IsNullOrWhiteSpace(currentPath))
-            {
-                return;
-            }
-
-            string directoryName;
+            // 現在の背景のパスが無効なパスならばやり直せない。
+            string currentFullPath;
             try
             {
-                directoryName = Path.GetDirectoryName(currentPath);
+                currentFullPath = Path.GetFullPath(currentPath);
             }
             catch
             {
-                // GetDirectoryName で例外が発生するということは、レジストリに無効なパスが設定されていたということ。
-                // この場合はやり直せない。
+                // GetFullPath で例外が発生するということは、レジストリに無効なパスが設定されていたということ。
+                // この場合は、やり直せない。
                 return;
             }
 
             // 現在の背景のパスが Backup 内の画像を指していなければ、やり直せない。
+            var directoryName = Path.GetDirectoryName(currentPath);
             if (directoryName != backupDirectory)
             {
                 return;
@@ -215,10 +242,7 @@ namespace DesktopBackgroundScribbler
             // 現在の背景のパスが Backup 内の画像を指しているならば、その画像より一つ新しい画像を設定する。
             if (!Directory.Exists(backupDirectory))
             {
-                if (File.Exists(filePath))
-                {
-                    SetBackgroundImage(filePath);
-                }
+                カレントディレクトリの画像を設定();
                 return;
             }
 
@@ -231,9 +255,19 @@ namespace DesktopBackgroundScribbler
             {
                 SetBackgroundImage(Path.GetFullPath(files.First().Path));
             }
-            else if (File.Exists(filePath))
+            else
             {
-                SetBackgroundImage(filePath);
+                カレントディレクトリの画像を設定();
+            }
+        }
+
+        private void カレントディレクトリの画像を設定()
+        {
+            var files = GetCurrentDirectoryFiles();
+            if (files.Any())
+            {
+                var first = files.OrderBy(f => Path.GetFileName(f)).First();
+                SetBackgroundImage(Path.GetFullPath(first));
             }
         }
 
