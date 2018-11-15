@@ -9,7 +9,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Windows;
 
 namespace DesktopBackgroundScribbler
 {
@@ -34,7 +34,8 @@ namespace DesktopBackgroundScribbler
         public void Scribble(string text)
         {
             // デスクトップの背景となる画像のサイズを決定する。
-            var imageBounds = Screen.PrimaryScreen.Bounds;
+            var imageWidth = (int)SystemParameters.PrimaryScreenWidth;
+            var imageHeight = (int)SystemParameters.PrimaryScreenHeight;
 
             // ファイル名を決定する。
             // デスクトップの背景が「単色」に設定されている場合、SystemParametersInfo でファイルパスを指定しても、
@@ -46,9 +47,9 @@ namespace DesktopBackgroundScribbler
             var filePath = Path.Combine(currentDirectory, fileName);
 
             // 描画
-            using (var image = new DesktopBackgroundImage(imageBounds.Width, imageBounds.Height))
+            using (var image = new DesktopBackgroundImage(imageWidth, imageHeight))
             {
-                scribbler.Scribble(text, image.Graphics, imageBounds.Width, imageBounds.Height);
+                scribbler.Scribble(text, image.Graphics, imageWidth, imageHeight);
 
                 Backup(image.Original);
 
