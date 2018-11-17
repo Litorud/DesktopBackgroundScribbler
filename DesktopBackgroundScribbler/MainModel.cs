@@ -16,7 +16,7 @@ namespace DesktopBackgroundScribbler
     public class MainModel
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+        static extern bool SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
 
         readonly string currentDirectory;
         readonly string backupDirectory;
@@ -126,7 +126,7 @@ namespace DesktopBackgroundScribbler
             // 第4引数の1は設定を保存するということ。
             // 第4引数に2も指定すると、設定の更新を全てのアプリケーションに通知する。
             // これが無くて困ったことはないけど、問題となるアプリケーションもあるかもしれないので通知する。
-            SystemParametersInfo(20, 0, filePath, 1 | 2);
+            SystemParametersInfo(20U, 0U, filePath, 1U | 2U);
         }
 
         public void Undo()
