@@ -64,7 +64,6 @@
     </Page>
     <Compile Include="FontInfo.cs" />
     <Compile Include="History.cs" />
-    <Compile Include="IActivatable.cs" />
     <Compile Include="Scribbler.cs" />
     <Compile Include="TextPath.cs" />
     <Page Include="MainWindow.xaml">
