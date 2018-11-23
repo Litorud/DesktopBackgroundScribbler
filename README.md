@@ -2,7 +2,7 @@
 Desktop Background Scribbler は、デスクトップの背景に文字をらくがきするプログラムです。
 
 ## ダウンロード
- - [バージョン 1.1](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.1/DesktopBackgroundScribbler.zip)
+ - [バージョン 1.3](https://github.com/Litorud/DesktopBackgroundScribbler/releases/tag/v1.3/DesktopBackgroundScribbler.zip)
 
 ## 基本的な使い方
 起動するとテキストボックスが表示されます。
