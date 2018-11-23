@@ -2,7 +2,6 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
@@ -81,48 +80,11 @@ namespace DesktopBackgroundScribbler
             } while (++count < 10);
         }
 
-        public static void Log(object message)
-        {
-            var dateTimeStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var log = new StringBuilder(dateTimeStr).AppendLine(" ----------------").Append(message).AppendLine();
-            var fileInfo = new FileInfo("Log.log");
-
-            if (!fileInfo.Exists)
-            {
-                using (var stream = fileInfo.CreateText())
-                {
-                    stream.Write(log);
-                }
-                return;
-            }
-
-            if (fileInfo.Length < 1024 * 1024)
-            {
-                using (var stream = fileInfo.AppendText())
-                {
-                    stream.Write(log);
-                }
-                return;
-            }
-
-            string text;
-            using (var stream = fileInfo.OpenText())
-            {
-                text = stream.ReadToEnd();
-            }
-            text = text.Substring(text.Length / 2);
-            using (var stream = fileInfo.CreateText())
-            {
-                stream.Write(text);
-                stream.Write(log);
-            }
-        }
-
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             try
             {
-                Log(e?.ExceptionObject);
+                Logger.Log(e?.ExceptionObject);
             }
             catch
             {
