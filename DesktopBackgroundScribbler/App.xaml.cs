@@ -47,7 +47,11 @@ namespace DesktopBackgroundScribbler
 
                 using (var mmf = MemoryMappedFile.CreateNew(memoryMappedFileName, 8))
                 {
-                    mainWindow.Loaded += (sender, e) =>
+                    // http://grabacr.net/archives/1585
+                    // によると、ウィンドウハンドルが取れるようになるタイミングは SourceInitialized とのこと。
+                    // https://docs.microsoft.com/ja-jp/dotnet/framework/wpf/app-development/wpf-windows-overview
+                    // の「ウィンドウの有効期間イベント」を見ると、SourceInitialized が最も早いタイミングと分かる。
+                    mainWindow.SourceInitialized += (sender, e) =>
                     {
                         var helper = new WindowInteropHelper(mainWindow);
                         var windowHandle = helper.Handle.ToInt64();
