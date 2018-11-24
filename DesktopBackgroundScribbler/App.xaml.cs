@@ -17,6 +17,14 @@ namespace DesktopBackgroundScribbler
         const string id = "{14482529-941C-4025-80F8-1836D76B064B}";
         const string memoryMappedFileName = id + ".dat";
 
+        const int SW_RESTORE = 9;
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -29,7 +37,7 @@ namespace DesktopBackgroundScribbler
 
                 if (!createdNew)
                 {
-                    ActivateExistingWindow();
+                    TryActivateExistingWindow();
                     return;
                 }
 
@@ -42,7 +50,8 @@ namespace DesktopBackgroundScribbler
                 {
                     mainWindow.Loaded += (sender, e) =>
                     {
-                        var windowHandle = new WindowInteropHelper(mainWindow).Handle.ToInt64();
+                        var helper = new WindowInteropHelper(mainWindow);
+                        var windowHandle = helper.Handle.ToInt64();
 
                         using (var stream = mmf.CreateViewStream())
                         {
@@ -56,7 +65,7 @@ namespace DesktopBackgroundScribbler
             }
         }
 
-        private static void ActivateExistingWindow()
+        private static void TryActivateExistingWindow()
         {
             var count = 0;
             do
@@ -70,7 +79,7 @@ namespace DesktopBackgroundScribbler
                         var windowHandle = binaryReader.ReadInt64();
                         if (windowHandle > 0)
                         {
-                            SetForegroundWindow(new IntPtr(windowHandle));
+                            ActivateExistingWindow(windowHandle);
                             return;
                         }
                     }
@@ -79,6 +88,18 @@ namespace DesktopBackgroundScribbler
 
                 Thread.Sleep(1000);
             } while (++count < 10);
+        }
+
+        private static void ActivateExistingWindow(long windowHandle)
+        {
+            var hWnd = new IntPtr(windowHandle);
+
+            if (IsIconic(hWnd))
+            {
+                ShowWindowAsync(hWnd, SW_RESTORE);
+            }
+
+            SetForegroundWindow(hWnd);
         }
 
         public static void Log(object message)
