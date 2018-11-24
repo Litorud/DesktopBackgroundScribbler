@@ -4,7 +4,6 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
-using System.Windows.Interop;
 
 namespace DesktopBackgroundScribbler
 {
@@ -47,14 +46,9 @@ namespace DesktopBackgroundScribbler
 
                 using (var mmf = MemoryMappedFile.CreateNew(memoryMappedFileName, 8))
                 {
-                    // http://grabacr.net/archives/1585
-                    // によると、ウィンドウハンドルが取れるようになるタイミングは SourceInitialized とのこと。
-                    // https://docs.microsoft.com/ja-jp/dotnet/framework/wpf/app-development/wpf-windows-overview
-                    // の「ウィンドウの有効期間イベント」を見ると、SourceInitialized が最も早いタイミングと分かる。
-                    mainWindow.SourceInitialized += (sender, e) =>
+                    mainWindow.HandleInitialized += (sender, e) =>
                     {
-                        var helper = new WindowInteropHelper(mainWindow);
-                        var windowHandle = helper.Handle.ToInt64();
+                        var windowHandle = mainWindow.Handle.ToInt64();
 
                         using (var stream = mmf.CreateViewStream())
                         {
