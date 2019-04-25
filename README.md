@@ -4,7 +4,7 @@ Desktop Background Scribbler は、デスクトップの背景に文字をらく
 
 ## ダウンロード
 
-- [バージョン 1.4](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.4/DesktopBackgroundScribbler.zip)
+- [バージョン 1.5](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.5/DesktopBackgroundScribbler.zip)
 
 ## 基本的な使い方
 
