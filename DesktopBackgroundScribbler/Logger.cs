@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,7 +12,7 @@ namespace DesktopBackgroundScribbler
     {
         public static void Log(object message)
         {
-            var dateTimeStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var dateTimeStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
             var log = new StringBuilder(dateTimeStr)
                 .AppendLine(" ----------------")
                 .Append(message)

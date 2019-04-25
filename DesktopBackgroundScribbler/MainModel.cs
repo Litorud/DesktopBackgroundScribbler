@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -43,7 +44,7 @@ namespace DesktopBackgroundScribbler
             // 結果として意図しない背景になることがある。
             // これに対応するため、日時付きのファイル名にして、同じ画像パスにならないようにする。
             // v1.1 では、常に Background.bmp というファイル名だったので、上記現象が発生していた。
-            var fileName = "Background_" + DateTime.Now.ToString("yyyyMMddTHHmmss,fff") + ".bmp";
+            var fileName = "Background_" + DateTime.Now.ToString("yyyyMMddTHHmmss,fff", CultureInfo.InvariantCulture) + ".bmp";
             var filePath = Path.Combine(currentDirectory, fileName);
 
             // 描画
