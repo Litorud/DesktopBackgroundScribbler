@@ -43,7 +43,11 @@ namespace DesktopBackgroundScribbler
                 "游明朝",
                 "游明朝",
                 "UD デジタル 教科書体 NK-R",
-                "UD デジタル 教科書体 NK-B");
+                "UD デジタル 教科書体 NK-B",
+                "BIZ UDPゴシック",
+                "BIZ UDPゴシック",
+                "BIZ UDP明朝",
+                "BIZ UDP明朝");
             var latinFontFamilies = GetFontFamilies(
                 "Comic Sans MS",
                 "Georgia",
