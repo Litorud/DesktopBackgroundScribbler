@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DesktopBackgroundScribbler
 {
@@ -14,10 +9,9 @@ namespace DesktopBackgroundScribbler
 
         public void Scribble(string text, Graphics graphics, int width, int height)
         {
-            // 画像のサイズから、最小フォントサイズを短辺の1/100と決定する。また、最大フォントサイズを短辺の2倍と決定する。
+            // 画像のサイズから、最小フォントサイズを短辺の1/100と決定する。
             var 短辺 = Math.Min(width, height);
             var minFontSize = 短辺 / 100F;
-            var maxFontSize = 短辺 * 2F;
 
             // フォントファミリーとフォントスタイルをランダムに決定する。
             var fontInfo = FontInfo.GenerateRandomFontInfo(text, random);
@@ -27,18 +21,14 @@ namespace DesktopBackgroundScribbler
 
             var pathBounds = textPath.Path.GetBounds();
 
-            // 最小フォントサイズ、最大フォントサイズ、テキストパスサイズ、画像サイズから、拡大率を決定する。
-            var scaleRatio = GenerateRandomScaleRatio(
-                minFontSize, maxFontSize,
-                pathBounds.Width, pathBounds.Height,
-                width, height);
+            // テキストパスサイズと画像サイズから、拡大率を決定する。
+            var scaleRatio = GenerateRandomScaleRatio(pathBounds.Width, pathBounds.Height, width, height);
 
             // 傾きを決定する。
             var angle = GenerateRandomAngle(45);
 
             // 最小フォントサイズ、拡大率、テキストパスサイズ、画像サイズ、傾きから、位置を決定する。
             var point = GenerateRandomPoint(
-                minFontSize,
                 scaleRatio,
                 pathBounds.Width, pathBounds.Height,
                 width, height,
@@ -47,45 +37,28 @@ namespace DesktopBackgroundScribbler
             // 色を決定する。色に基づいて Brush を作成する。
             var color = GenerateRandomColor();
 
-            // 拡大率から、縁取りの幅を決定する。
-            var strokeWidth = GenerateRandomStrokeWidth(scaleRatio);
+            // フォントサイズから、縁取りの幅を決定する。
+            // フォントサイズ≒文字列高さなので、別に pathBounds.Height * scaleRatio を渡してもよい。
+            var strokeWidth = GenerateRandomStrokeWidth(minFontSize * scaleRatio);
 
             // 実際に描画。
             Draw(graphics, textPath, scaleRatio, angle, point, color, strokeWidth);
         }
 
-        private double GenerateRandomScaleRatio(float minFontSize, float maxFontSize, float pathWidth, float pathHeight, int imageWidth, int imageHeight)
+        private double GenerateRandomScaleRatio(float pathWidth, float pathHeight, int imageWidth, int imageHeight)
         {
-            // 現文字列幅 × 最大拡大率 = 画像幅 + フォントサイズ
-            // ここで、フォントサイズも拡大率に伴って変わるので、
-            // 現文字列幅 × 最大拡大率 = 画像幅 + minFontSize × 最大拡大率
-            // 最大拡大率 = 画像幅 ÷ (現文字列幅 - minFontSize)
-            var 最大拡大率 = maxFontSize / minFontSize;
-            if (pathWidth > minFontSize)
+            // 画像と同じ幅、または画像と同じ高さまで拡大することを許容する。
+            var 最大拡大率 = Math.Min(imageWidth / pathWidth, imageHeight / pathHeight);
+
+            // 1～最大拡大率の範囲でランダムな拡大率を返す。
+            // ただし、最大拡大率が1未満の場合、1を返す。
+            // 例えば、画像サイズが 200×100 の場合、最小フォントサイズは1だが、このフォントサイズでも201文字以上あれば文字列幅が画像幅より長くなる。
+            // このとき、最大拡大率が1未満になる。
+            if (最大拡大率 < 1)
             {
-                var 幅最大拡大率 = imageWidth / (pathWidth - minFontSize);
-                if (pathHeight > minFontSize)
-                {
-                    var 高さ最大拡大率 = imageHeight / (pathHeight - minFontSize);
-                    最大拡大率 = Math.Min(Math.Min(幅最大拡大率, 高さ最大拡大率), 最大拡大率);
-                }
-                else // pathHeight <= minFontSize の場合
-                {
-                    最大拡大率 = Math.Min(幅最大拡大率, 最大拡大率);
-                }
-            }
-            else if (pathHeight > minFontSize)
-            {
-                var 高さ最大拡大率 = imageHeight / (pathHeight - minFontSize);
-                最大拡大率 = Math.Min(高さ最大拡大率, 最大拡大率);
+                return 1;
             }
 
-            if (最大拡大率 <= 1)
-            {
-                return 最大拡大率;
-            }
-
-            // 1～最大拡大率の範囲でランダムで拡大率を決定する。
             return (最大拡大率 - 1) * random.NextDouble() + 1;
         }
 
@@ -94,25 +67,68 @@ namespace DesktopBackgroundScribbler
             return random.NextDouble() * maxAngle * 2 - maxAngle;
         }
 
-        private PointF GenerateRandomPoint(float minFontSize, double scaleRatio, float pathWidth, float pathHeight, int imageWidth, int imageHeight, double angle)
+        private PointF GenerateRandomPoint(double scaleRatio, float pathWidth, float pathHeight, int imageWidth, int imageHeight, double angle)
         {
-            // 位置を決定する。開始位置及び終了位置は、フォントサイズの半分までなら見切れてよい。
-            var fontSize = minFontSize * scaleRatio;
-            var halfFontSize = fontSize / 2;
-
-            var 幅 = pathWidth * scaleRatio;
-            var 高さ = pathHeight * scaleRatio;
+            var 文字列幅 = pathWidth * scaleRatio;
+            var 文字列高さ = pathHeight * scaleRatio;
             var rad = angle * Math.PI / 180;
 
-            var 描画時に必要な幅 = Math.Abs(Math.Cos(rad)) * 幅 + Math.Abs(Math.Sin(rad)) * 高さ;
-            var 取りうる幅 = imageWidth + fontSize - 描画時に必要な幅;
-            var x = 取りうる幅 * random.NextDouble() - halfFontSize + 描画時に必要な幅 / 2;
+            var 描画幅 = Math.Abs(Math.Cos(rad)) * 文字列幅 + Math.Abs(Math.Sin(rad)) * 文字列高さ;
+            var 描画高さ = Math.Abs(Math.Sin(rad)) * 文字列幅 + Math.Abs(Math.Cos(rad)) * 文字列高さ;
+            var 描画幅の半分 = 描画幅 / 2;
+            var 描画高さの半分 = 描画高さ / 2;
 
-            var 描画時に必要な高さ = Math.Abs(Math.Sin(rad)) * 幅 + Math.Abs(Math.Cos(rad)) * 高さ;
-            var 取りうる高さ = imageHeight + fontSize - 描画時に必要な高さ;
-            var y = 取りうる高さ * random.NextDouble() - halfFontSize + 描画時に必要な高さ / 2;
+            // 開始位置及び終了位置は、文字列高さ（≒フォントサイズ）の3分の1までなら見切れてよい。
+            var はみ出し許容量 = 文字列高さ / 3;
+
+            double x, y;
+
+            // 例えば、画像サイズが 200×100 の場合、最小フォントサイズは1だが、このフォントサイズでも201文字以上あれば文字列幅が画像幅より長くなる。
+            // さらに、1000文字もあれば、はみ出し許容量をもってしても文字列幅のほうが明らかに長くなる。
+            // このような場合は、はみ出し許容量よりも左のどの点から文字列描画が開始するか、を考えなくてはならない。
+            // つまり、文字列幅 < 画像幅の場合（大抵はこっち）と、文字列幅 > 画像幅の場合とで、場合分けしなければならない。
+            if (描画幅 <= はみ出し許容量 + imageWidth + はみ出し許容量) // 文字列幅 < 画像幅の場合
+            {
+                x = random.NextDouble() * imageWidth; // 画像全体の中から完全にランダムな座標。
+                x = 押し込む(x, 描画幅の半分, imageWidth); // 描画がはみ出すなら、その分押し込む。
+            }
+            else // 文字列幅 > 画像幅の場合
+            {
+                var 左端限界 = imageWidth + はみ出し許容量 - 描画幅の半分;
+                var 右端限界 = -はみ出し許容量 + 描画幅の半分;
+                x = 左端限界 + random.NextDouble() * (右端限界 - 左端限界);
+            }
+
+            if (描画高さ < はみ出し許容量 + imageHeight + はみ出し許容量) // 文字列高さ < 画像高さの場合
+            {
+                y = random.NextDouble() * imageHeight; // 画像全体の中から完全にランダムな座標。
+                y = 押し込む(y, 描画高さの半分, imageHeight); // 描画がはみ出すなら、その分押し込む。
+            }
+            else // 文字列高さ > 画像高さの場合
+            {
+                var 上端限界 = imageHeight + はみ出し許容量 - 描画高さの半分;
+                var 下端限界 = -はみ出し許容量 + 描画高さの半分;
+                y = 上端限界 + random.NextDouble() * (下端限界 - 上端限界);
+            }
 
             return new PointF((float)x, (float)y);
+
+            double 押し込む(double xx, double halfWidth, double imageLength)
+            {
+                var 左端限界 = halfWidth - はみ出し許容量;
+                if (xx <= 左端限界)
+                {
+                    return 左端限界;
+                }
+
+                var 右端限界 = imageLength - halfWidth + はみ出し許容量;
+                if (xx >= 右端限界)
+                {
+                    return 右端限界;
+                }
+
+                return xx;
+            }
         }
 
         private Color GenerateRandomColor()
@@ -123,20 +139,13 @@ namespace DesktopBackgroundScribbler
             return Color.FromArgb(r, g, b);
         }
 
-        private double GenerateRandomStrokeWidth(double scaleRatio)
+        private double GenerateRandomStrokeWidth(double fontSize)
         {
-            // scaleRatio が1（=フォントサイズが10.8）のとき、1～3の範囲でランダムに幅を決めたい。
-            // scaleRatio が100（=フォントサイズが1080）のとき、3～10の範囲でランダムに幅を決めたい。
-            // 連立方程式解いて定数を求めた。
-            var 振れ幅 = 5 * scaleRatio / 99 + 1.9;
-            var オフセット = 2 * scaleRatio / 99 + 1;
-            // 上記式の第2項は、毎回割り算が発生するコストが見合わないので、
-            // 近似値のリテラルで置き換えている。
-
-            return 振れ幅 * random.NextDouble() + オフセット;
-
-            // 別の求め方として、許容する最小の幅と最大の幅を計算し、
-            // (最大幅 - 最小幅) * random.NextDouble() + 最小幅 を返す方法もある。
+            // フォントサイズ 2.56px のとき1～1、
+            // フォントサイズ 1080px のとき3～10 と決め、連立方程式を解いてリテラル値を求めた。
+            var 最小幅 = 0.001856252 * fontSize + 0.995247995;
+            var 最大幅 = 0.008353133 * fontSize + 0.978615979;
+            return 最小幅 + (最大幅 - 最小幅) * random.NextDouble();
         }
 
         private void Draw(Graphics graphics, TextPath textPath, double scaleRatio, double angle, PointF point, Color color, double strokeWidth)

@@ -24,12 +24,10 @@ namespace DesktopBackgroundScribbler.Tests
             var pathWidths = new[] { 1F, 10.79F, 10.8F, 10.81F, 1920F, 3840F };
             foreach (var pathWidth in pathWidths)
             {
-                var minFontSize = 10.8F;
-                var maxFontSize = 2160;
                 var pathHeight = 10.8F;
                 var imageWidth = 1920;
                 var imageHeight = 1080;
-                var args = new object[] { minFontSize, maxFontSize, pathWidth, pathHeight, imageWidth, imageHeight };
+                var args = new object[] { pathWidth, pathHeight, imageWidth, imageHeight };
 
                 var results = new List<double>();
                 for (int i = 0; i < 1000; i++)
@@ -65,13 +63,12 @@ namespace DesktopBackgroundScribbler.Tests
             var angles = new[] { 0D, 45D, 90D };
             foreach (var angle in angles)
             {
-                var minFontSize = 10F;
                 var scaleRatio = 10D;
                 var pathWidth = 100F;
                 var pathHeight = 10F;
                 var imageWidth = 1920;
                 var imageHeight = 1080;
-                var args = new object[] { minFontSize, scaleRatio, pathWidth, pathHeight, imageWidth, imageHeight, angle };
+                var args = new object[] { scaleRatio, pathWidth, pathHeight, imageWidth, imageHeight, angle };
 
                 var xResults = new List<float>();
                 var yResults = new List<float>();
