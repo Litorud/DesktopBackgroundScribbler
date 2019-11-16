@@ -4,9 +4,9 @@ Desktop Background Scribbler は、デスクトップの背景に文字をらく
 
 ## ダウンロード
 
-- [バージョン 1.5](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.5/DesktopBackgroundScribbler.zip)
+- [バージョン 1.6](https://github.com/Litorud/DesktopBackgroundScribbler/releases/download/v1.6/DesktopBackgroundScribbler.zip)
 
-## 基本的な使い方
+## 使い方
 
 起動するとテキストボックスが表示されます。
 テキストボックスに何か文字を入力して「描画」をクリックすると、その文字がデスクトップの背景に描かれます。
@@ -18,7 +18,7 @@ Desktop Background Scribbler は、デスクトップの背景に文字をらく
 
 ### 履歴
 
-テキストボックスにフォーカスがあるとき、カーソルキーの上下で、過去に入力した文字を呼び出すことができます。
+テキストボックスにフォーカスがあるとき、カーソルキーの上下で、過去に描画した文字の履歴を呼び出すことができます。
 
 ### 元に戻す/やり直し
 
@@ -41,3 +41,8 @@ Ctrl+Shift+Z で、前回のらくがきを戻すことができます。
 デスクトップの背景を操作するわけなので、このプログラムはレジストリを変更します。
 変更するのはデスクトップの背景に関する値だけです。
 デスクトップの背景は、[Windows の設定]>[個人用設定]>[背景] で、いつでも変えることができます。
+
+## アンインストール
+
+展開したフォルダーを削除するだけです。このフォルダー以外の場所にはファイルを生成しません。
+デスクトップの背景は、個人用設定から手動で元に戻してください。
