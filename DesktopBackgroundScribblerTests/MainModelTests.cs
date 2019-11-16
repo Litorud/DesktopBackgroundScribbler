@@ -1,17 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DesktopBackgroundScribbler;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Diagnostics;
-using System.Drawing;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using System;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace DesktopBackgroundScribbler.Tests
@@ -26,14 +18,16 @@ namespace DesktopBackgroundScribbler.Tests
         public void ScribbleTest()
         {
             var mainModel = new MainModel();
-            var texts = new[] { ".", "l", "鑑", "安以宇衣於加幾久計己左之寸世曽太知川天止奈仁奴祢乃波比不部保末美武女毛也以由江与良利留礼呂和為宇恵遠" };
-            for (var i = 0; i < 50; i++)
-            {
-                foreach (var text in texts)
-                {
-                    mainModel.Scribble(text); S();
-                }
-            }
+
+            // 小さな文字が描画できることを確認する。
+            mainModel.Scribble("."); S();
+
+            // 縦長の文字が描画できることを確認する。
+            mainModel.Scribble("l"); S();
+
+            // 異常に長い文字列が描画できることを確認する。
+            mainModel.Scribble("亜唖娃阿哀愛挨姶逢葵茜穐悪握渥旭葦芦鯵梓圧斡扱宛姐虻飴絢綾鮎或粟袷安庵按暗案闇鞍杏以伊位依偉囲夷委威尉惟意慰易椅為畏異移維緯胃萎衣謂違遺医井亥域育郁磯一壱溢逸稲茨芋鰯允印咽員因姻引飲淫胤蔭院陰隠韻吋右宇烏羽迂雨卯鵜窺丑碓臼渦嘘唄欝蔚鰻姥厩浦瓜閏噂云運雲荏餌叡営嬰影映曳栄永泳洩瑛盈穎頴英衛詠鋭液疫益駅悦謁越閲榎厭円園堰奄宴延怨掩援沿演炎焔煙燕猿縁艶苑薗遠鉛鴛塩於汚甥凹央奥往応押旺横欧殴王翁襖鴬鴎黄岡"); S(); // JIS 第1水準の先頭200文字。
+
             Assert.IsTrue(true);
         }
 

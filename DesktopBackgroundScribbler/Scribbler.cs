@@ -7,6 +7,9 @@ namespace DesktopBackgroundScribbler
     {
         Random random = new Random();
 
+        /// <summary>
+        /// 指定した Graphics に、指定した文字列をランダムに描きます。
+        /// </summary>
         public void Scribble(string text, Graphics graphics, int width, int height)
         {
             // 画像のサイズから、最小フォントサイズを短辺の1/100と決定する。
